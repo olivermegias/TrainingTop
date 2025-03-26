@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
 import { debounce } from "lodash";
+import FilterModalContent from "./FilterModalContent";
 
 const API_URL_ANDROID = "http://10.0.2.2:5005";
 const API_URL_WEB = "http://localhost:5005";
@@ -30,13 +31,13 @@ export default function EjerciciosScreen() {
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
-  const [filters, setFilters] = useState({
+  const [appliedFilters, setAppliedFilters] = useState({
     nivel: null,
     categoria: null,
     equipo: null,
     musculo: null,
   });
-  const [appliedFilters, setAppliedFilters] = useState({
+  const [tempFilters, setTempFilters] = useState({
     nivel: null,
     categoria: null,
     equipo: null,
@@ -88,7 +89,7 @@ export default function EjerciciosScreen() {
 
   useEffect(() => {
     applyFilters();
-  }, [appliedFilters, clea]); 
+  }, [appliedFilters, searchText, ejercicios]);
 
   const fetchEjercicios = async () => {
     try {
@@ -123,25 +124,22 @@ export default function EjerciciosScreen() {
       );
     }
 
-    // Aplicar los filtros solo cuando se presione "Aplicar"
+    // Aplicar filtros usando appliedFilters directamente
     if (appliedFilters.nivel) {
       results = results.filter(
         (ejercicio) => ejercicio.nivel === appliedFilters.nivel
       );
     }
-
     if (appliedFilters.categoria) {
       results = results.filter(
         (ejercicio) => ejercicio.categoria === appliedFilters.categoria
       );
     }
-
     if (appliedFilters.equipo) {
       results = results.filter(
         (ejercicio) => ejercicio.equipo === appliedFilters.equipo
       );
     }
-
     if (appliedFilters.musculo) {
       results = results.filter(
         (ejercicio) =>
@@ -178,33 +176,56 @@ export default function EjerciciosScreen() {
     }
   };
 
-  const toggleFilter = (type, value) => {
-    setFilters((prevFilters) => ({
+  const toggleFilter = useCallback((type, value) => {
+    setTempFilters((prevFilters) => ({
       ...prevFilters,
       [type]: prevFilters[type] === value ? null : value,
     }));
-  };
+  }, []);
+
+  const toggleAppliedFilter = useCallback((type, value) => {
+    setAppliedFilters((prevFilters) => ({
+      ...prevFilters,
+      [type]: prevFilters[type] === value ? null : value,
+    }));
+  }, []);
 
   const clearFilters = () => {
-    setFilters({
+    setAppliedFilters({
       nivel: null,
       categoria: null,
       equipo: null,
       musculo: null,
     });
-    applyFilters();
+    setTempFilters({
+      nivel: null,
+      categoria: null,
+      equipo: null,
+      musculo: null,
+    });
   };
 
+  const clearTempFilters = useCallback(() => {
+    setTempFilters({
+      nivel: null,
+      categoria: null,
+      equipo: null,
+      musculo: null,
+    });
+  }, []);
+
   const hasActiveFilters = () => {
-    return Object.values(filters).some((filter) => filter !== null);
+    return Object.values(appliedFilters).some((filter) => filter !== null);
   };
+  const hasActiveTempFilters = useCallback(() => {
+    return Object.values(tempFilters).some((filter) => filter !== null);
+  }, [tempFilters]);
 
   const capitalizeFirstLetter = (string) => {
     return string.charAt(0).toUpperCase() + string.slice(1);
   };
 
-  // Componente para los chips de filtro
-  const FilterChip = ({ label, isActive, onPress }) => (
+  const FilterChip = React.memo(({ label, isActive, onPress }) => (
     <TouchableOpacity
       style={[styles.filterChip, isActive && styles.activeFilterChip]}
       onPress={onPress}
@@ -212,7 +233,7 @@ export default function EjerciciosScreen() {
       <Text
         style={[styles.filterChipText, isActive && styles.activeFilterChipText]}
       >
-        {capitalizeFirstLetter(label)}
+        {label.charAt(0).toUpperCase() + label.slice(1)}
       </Text>
       {isActive && (
         <Ionicons
@@ -223,102 +244,44 @@ export default function EjerciciosScreen() {
         />
       )}
     </TouchableOpacity>
-  );
+  ));
 
-  // Modal de filtros
-  const FilterModal = () => (
-    <Modal
-      visible={isFilterModalVisible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={() => setIsFilterModalVisible(false)}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Filtros</Text>
-            <TouchableOpacity onPress={() => setIsFilterModalVisible(false)}>
-              <Ionicons name="close" size={24} color="#212121" />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.modalScrollView}>
-            {/* Sección de nivel */}
-            <Text style={styles.filterSectionTitle}>Nivel</Text>
-            <View style={styles.filterOptionsContainer}>
-              {niveles.map((nivel) => (
-                <FilterChip
-                  key={nivel}
-                  label={nivel}
-                  isActive={filters.nivel === nivel}
-                  onPress={() => toggleFilter("nivel", nivel)}
-                />
-              ))}
-            </View>
-
-            {/* Sección de categoría */}
-            <Text style={styles.filterSectionTitle}>Categoría</Text>
-            <View style={styles.filterOptionsContainer}>
-              {categorias.map((categoria) => (
-                <FilterChip
-                  key={categoria}
-                  label={categoria}
-                  isActive={filters.categoria === categoria}
-                  onPress={() => toggleFilter("categoria", categoria)}
-                />
-              ))}
-            </View>
-
-            {/* Sección de equipo */}
-            <Text style={styles.filterSectionTitle}>Equipo</Text>
-            <View style={styles.filterOptionsContainer}>
-              {equipos.map((equipo) => (
-                <FilterChip
-                  key={equipo}
-                  label={equipo}
-                  isActive={filters.equipo === equipo}
-                  onPress={() => toggleFilter("equipo", equipo)}
-                />
-              ))}
-            </View>
-
-            {/* Sección de músculos */}
-            <Text style={styles.filterSectionTitle}>Músculo</Text>
-            <View style={styles.filterOptionsContainer}>
-              {musculos.map((musculo) => (
-                <FilterChip
-                  key={musculo}
-                  label={musculo}
-                  isActive={filters.musculo === musculo}
-                  onPress={() => toggleFilter("musculo", musculo)}
-                />
-              ))}
-            </View>
-          </ScrollView>
-
-          <View style={styles.modalFooter}>
-            {hasActiveFilters() && (
-              <TouchableOpacity
-                style={styles.clearButton}
-                onPress={clearFilters}
-              >
-                <Text style={styles.clearButtonText}>Limpiar filtros</Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              style={styles.applyButton}
-              onPress={() => {
-                setAppliedFilters(filters); // Guardar los filtros seleccionados
-                applyFilters(); // Aplicar los filtros con los valores nuevos
-                setIsFilterModalVisible(false); // Cerrar modal
-              }}
-            >
-              <Text style={styles.applyButtonText}>Aplicar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
+  const memoizedFilterModal = useMemo(
+    () => (
+      <Modal
+        visible={isFilterModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsFilterModalVisible(false)}
+      >
+        <FilterModalContent
+          onClose={() => setIsFilterModalVisible(false)}
+          tempFilters={tempFilters}
+          niveles={niveles}
+          categorias={categorias}
+          equipos={equipos}
+          musculos={musculos}
+          toggleFilter={toggleFilter}
+          hasActiveTempFilters={hasActiveTempFilters}
+          clearTempFilters={clearTempFilters}
+          onApply={() => {
+            setAppliedFilters(tempFilters);
+            setIsFilterModalVisible(false);
+          }}
+        />
+      </Modal>
+    ),
+    [
+      isFilterModalVisible,
+      tempFilters,
+      niveles,
+      categorias,
+      equipos,
+      musculos,
+      toggleFilter,
+      hasActiveTempFilters,
+      clearTempFilters,
+    ]
   );
 
   if (loading) {
@@ -372,32 +335,42 @@ export default function EjerciciosScreen() {
               style={styles.activeFiltersContainer}
               contentContainerStyle={styles.activeFiltersContent}
             >
-              {filters.nivel && (
+              {appliedFilters.nivel && (
                 <FilterChip
-                  label={filters.nivel}
+                  label={appliedFilters.nivel}
                   isActive={true}
-                  onPress={() => toggleFilter("nivel", filters.nivel)}
+                  onPress={() => {
+                    toggleAppliedFilter("nivel", appliedFilters.nivel);
+                    toggleFilter("nivel", appliedFilters.nivel);
+                  }}
                 />
               )}
-              {filters.categoria && (
+              {appliedFilters.categoria && (
                 <FilterChip
-                  label={filters.categoria}
+                  label={appliedFilters.categoria}
                   isActive={true}
-                  onPress={() => toggleFilter("categoria", filters.categoria)}
+                  onPress={() => {
+                    toggleAppliedFilter("nivel", appliedFilters.nivel);
+                    toggleFilter("nivel", appliedFilters.nivel);
+                  }}
                 />
               )}
-              {filters.equipo && (
+              {appliedFilters.equipo && (
                 <FilterChip
-                  label={filters.equipo}
+                  label={appliedFilters.equipo}
                   isActive={true}
-                  onPress={() => toggleFilter("equipo", filters.equipo)}
+                  onPress={() =>
+                    toggleAppliedFilter("equipo", appliedFilters.equipo)
+                  }
                 />
               )}
-              {filters.musculo && (
+              {appliedFilters.musculo && (
                 <FilterChip
-                  label={filters.musculo}
+                  label={appliedFilters.musculo}
                   isActive={true}
-                  onPress={() => toggleFilter("musculo", filters.musculo)}
+                  onPress={() =>
+                    toggleAppliedFilter("musculo", appliedFilters.musculo)
+                  }
                 />
               )}
 
@@ -529,7 +502,7 @@ export default function EjerciciosScreen() {
       </View>
 
       {/* Modal de filtros */}
-      <FilterModal />
+      {memoizedFilterModal}
     </SafeAreaView>
   );
 }

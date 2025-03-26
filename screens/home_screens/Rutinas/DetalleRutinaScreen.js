@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
   Image,
   SafeAreaView,
   StatusBar,
   ActivityIndicator,
-  Alert
+  Alert,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,7 +19,7 @@ import { Platform } from "react-native";
 const API_URL_ANDROID = "http://10.0.2.2:5005";
 const API_URL_WEB = "http://localhost:5005";
 
-const API_URL = Platform.OS === 'android' ? API_URL_ANDROID : API_URL_WEB;
+const API_URL = Platform.OS === "android" ? API_URL_ANDROID : API_URL_WEB;
 
 export default function DetalleRutinaScreen() {
   const route = useRoute();
@@ -43,37 +43,42 @@ export default function DetalleRutinaScreen() {
         console.warn("⚠️ No hay rutina o días disponibles");
         return;
       }
-  
-      const ejerciciosIds = rutina.dias.flatMap(dia =>
-        dia.ejercicios.map(ejercicio => ejercicio.ejercicio)
+
+      const ejerciciosIds = rutina.dias.flatMap((dia) =>
+        dia.ejercicios.map((ejercicio) => ejercicio.ejercicio)
       );
-  
+
       if (ejerciciosIds.length === 0) {
         console.warn("⚠️ No hay ejercicios en la rutina");
         return;
       }
-  
+
       const uniqueIds = [...new Set(ejerciciosIds)];
-  
+
       console.log("📌 Solicitando ejercicios con IDs:", uniqueIds);
-  
+
       // Construir la URL con los IDs como query params
       const queryParams = uniqueIds.join(",");
-      const response = await axios.get(`${API_URL}/ejercicios/porIds?ids=${queryParams}`);
-  
+      const response = await axios.get(
+        `${API_URL}/ejercicios/porIds?ids=${queryParams}`
+      );
+
       console.log("✅ Respuesta de API ejercicios:", response.data);
-  
+
       // Crear un mapeo de ID a objeto ejercicio
       const ejerciciosMap = {};
-      response.data.forEach(ejercicio => {
+      response.data.forEach((ejercicio) => {
         ejerciciosMap[ejercicio.id] = ejercicio;
       });
-  
+
       setEjerciciosData(ejerciciosMap);
       setLoading(false);
     } catch (error) {
       console.error("❌ Error al obtener detalles de ejercicios:", error);
-      Alert.alert("Error", "No se pudieron cargar los detalles de los ejercicios");
+      Alert.alert(
+        "Error",
+        "No se pudieron cargar los detalles de los ejercicios"
+      );
       setLoading(false);
     }
   };
@@ -90,10 +95,13 @@ export default function DetalleRutinaScreen() {
   };
 
   const renderNivelEstrellas = (nivel) => {
-    const nivelNumerico = typeof nivel === 'string' ? 
-      parseInt(nivel.replace(/\D/g, '')) || 3 : // Extraer número o default a 3
-      (typeof nivel === 'number' ? nivel : 3);
-    
+    const nivelNumerico =
+      typeof nivel === "string"
+        ? parseInt(nivel.replace(/\D/g, "")) || 3 // Extraer número o default a 3
+        : typeof nivel === "number"
+        ? nivel
+        : 3;
+
     const stars = [];
     for (let i = 0; i < 5; i++) {
       stars.push(
@@ -123,8 +131,8 @@ export default function DetalleRutinaScreen() {
       "¿Estás seguro que deseas eliminar esta rutina?",
       [
         { text: "Cancelar", style: "cancel" },
-        { 
-          text: "Eliminar", 
+        {
+          text: "Eliminar",
           style: "destructive",
           onPress: async () => {
             try {
@@ -134,8 +142,8 @@ export default function DetalleRutinaScreen() {
               console.error("Error al eliminar rutina:", error);
               Alert.alert("Error", "No se pudo eliminar la rutina");
             }
-          }
-        }
+          },
+        },
       ]
     );
   };
@@ -178,14 +186,20 @@ export default function DetalleRutinaScreen() {
           >
             <Ionicons name="arrow-back" size={24} color="#6200EE" />
           </TouchableOpacity>
-          
+
           <View style={styles.headerActions}>
             {!rutina.publica && (
               <>
-                <TouchableOpacity style={styles.actionIcon} onPress={editRutina}>
+                <TouchableOpacity
+                  style={styles.actionIcon}
+                  onPress={editRutina}
+                >
                   <Ionicons name="create-outline" size={24} color="#6200EE" />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.actionIcon} onPress={deleteRutina}>
+                <TouchableOpacity
+                  style={styles.actionIcon}
+                  onPress={deleteRutina}
+                >
                   <Ionicons name="trash-outline" size={24} color="#F44336" />
                 </TouchableOpacity>
               </>
@@ -195,12 +209,12 @@ export default function DetalleRutinaScreen() {
 
         <View style={styles.rutinaHeader}>
           <Text style={styles.rutinaTitle}>{rutina.nombre}</Text>
-          
+
           <View style={styles.nivelContainer}>
             <Text style={styles.nivelLabel}>Nivel: </Text>
             {renderNivelEstrellas(rutina.nivel)}
           </View>
-          
+
           {rutina.publica && (
             <View style={styles.publicBadge}>
               <Ionicons name="globe-outline" size={16} color="white" />
@@ -208,8 +222,10 @@ export default function DetalleRutinaScreen() {
             </View>
           )}
 
-          <Text style={styles.descripcion}>{rutina.descripcion || "Sin descripción"}</Text>
-          
+          <Text style={styles.descripcion}>
+            {rutina.descripcion || "Sin descripción"}
+          </Text>
+
           <View style={styles.infoRow}>
             <View style={styles.infoItem}>
               <Ionicons name="calendar-outline" size={18} color="#6200EE" />
@@ -219,39 +235,46 @@ export default function DetalleRutinaScreen() {
         </View>
 
         <View style={styles.divider} />
-        
+
         <View style={styles.diasContainer}>
           <Text style={styles.sectionTitle}>Días de Entrenamiento</Text>
-          
+
           {rutina.dias.map((dia, index) => (
             <View key={index} style={styles.diaCard}>
-              <TouchableOpacity 
-                style={styles.diaHeader} 
+              <TouchableOpacity
+                style={styles.diaHeader}
                 onPress={() => toggleDia(index)}
                 activeOpacity={0.7}
               >
                 <Text style={styles.diaTitle}>{dia.nombre}</Text>
-                <Ionicons 
-                  name={expandedDia === index ? "chevron-up" : "chevron-down"} 
-                  size={24} 
-                  color="#6200EE" 
+                <Ionicons
+                  name={expandedDia === index ? "chevron-up" : "chevron-down"}
+                  size={24}
+                  color="#6200EE"
                 />
               </TouchableOpacity>
-              
+
               {expandedDia === index && (
                 <View style={styles.ejerciciosList}>
                   {dia.ejercicios.map((ejercicio, ejIndex) => (
                     <View key={ejIndex} style={styles.ejercicioItem}>
                       <View style={styles.ejercicioRow}>
                         {ejerciciosData[ejercicio.ejercicio]?.imagenes?.[0] ? (
-                          <Image 
-                            source={{ uri: ejerciciosData[ejercicio.ejercicio].imagenes[0] }}
+                          <Image
+                            source={{
+                              uri: ejerciciosData[ejercicio.ejercicio]
+                                .imagenes[0],
+                            }}
                             style={styles.exerciseImage}
                             resizeMode="cover"
                           />
                         ) : (
                           <View style={styles.noImagePlaceholder}>
-                            <Ionicons name="barbell-outline" size={24} color="#BDBDBD" />
+                            <Ionicons
+                              name="barbell-outline"
+                              size={24}
+                              color="#BDBDBD"
+                            />
                           </View>
                         )}
                         <View style={styles.ejercicioContent}>
@@ -260,24 +283,36 @@ export default function DetalleRutinaScreen() {
                           </Text>
                           <View style={styles.ejercicioDetalles}>
                             <View style={styles.detalleItem}>
-                              <Ionicons name="repeat-outline" size={16} color="#6200EE" />
+                              <Ionicons
+                                name="repeat-outline"
+                                size={16}
+                                color="#6200EE"
+                              />
                               <Text style={styles.detalleText}>
                                 {ejercicio.series} x {ejercicio.repeticiones}
                               </Text>
                             </View>
-                            
+
                             {ejercicio.descanso && (
                               <View style={styles.detalleItem}>
-                                <Ionicons name="time-outline" size={16} color="#6200EE" />
+                                <Ionicons
+                                  name="time-outline"
+                                  size={16}
+                                  color="#6200EE"
+                                />
                                 <Text style={styles.detalleText}>
                                   {ejercicio.descanso}s descanso
                                 </Text>
                               </View>
                             )}
-                            
+
                             {ejercicio.peso && (
                               <View style={styles.detalleItem}>
-                                <Ionicons name="barbell-outline" size={16} color="#6200EE" />
+                                <Ionicons
+                                  name="barbell-outline"
+                                  size={16}
+                                  color="#6200EE"
+                                />
                                 <Text style={styles.detalleText}>
                                   {ejercicio.peso} kg
                                 </Text>
@@ -294,12 +329,9 @@ export default function DetalleRutinaScreen() {
           ))}
         </View>
       </ScrollView>
-      
+
       <View style={styles.footer}>
-        <TouchableOpacity 
-          style={styles.startButton}
-          onPress={startRutina}
-        >
+        <TouchableOpacity style={styles.startButton} onPress={startRutina}>
           <Ionicons name="play" size={20} color="white" />
           <Text style={styles.startButtonText}>Comenzar Rutina</Text>
         </TouchableOpacity>
@@ -561,5 +593,5 @@ const styles = StyleSheet.create({
   },
   halfButton: {
     flex: 0.48,
-  }
+  },
 });
