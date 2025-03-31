@@ -55,15 +55,11 @@ export default function DetalleRutinaScreen() {
 
       const uniqueIds = [...new Set(ejerciciosIds)];
 
-      console.log("📌 Solicitando ejercicios con IDs:", uniqueIds);
-
       // Construir la URL con los IDs como query params
       const queryParams = uniqueIds.join(",");
       const response = await axios.get(
         `${API_URL}/ejercicios/porIds?ids=${queryParams}`
       );
-
-      console.log("✅ Respuesta de API ejercicios:", response.data);
 
       // Crear un mapeo de ID a objeto ejercicio
       const ejerciciosMap = {};
