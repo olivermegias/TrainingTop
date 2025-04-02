@@ -1,0 +1,27 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@google-cloud/translate": "^8.5.0",
+    "@react-native-firebase/app": "^21.11.0",
+    "axios": "^1.7.9",
+    "cloudinary": "^2.5.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "firebase-admin": "^13.1.0",
+    "mongoose": "^8.10.1",
+    "node-cron": "^3.0.3",
+    "p-limit": "^6.2.0",
+    "translate": "^3.0.1"
+  }
+}
