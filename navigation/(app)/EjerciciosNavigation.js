@@ -1,5 +1,4 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 
 import EjerciciosScreen from '../../screens/home_screens/Ejercicios/EjerciciosScreen';
@@ -9,9 +8,9 @@ const Stack = createStackNavigator();
 
 export default function EjerciciosNavigation() {
   return (
-      <Stack.Navigator initialRouteName="Ejercicios">
+      <Stack.Navigator initialRouteName="ListaEjercicios">
         <Stack.Screen 
-          name="Ejercicios" 
+          name="ListaEjercicios" 
           component={EjerciciosScreen} 
           options={{ 
             headerShown: false,
