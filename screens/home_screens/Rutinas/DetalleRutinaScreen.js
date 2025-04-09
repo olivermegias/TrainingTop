@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -8,12 +8,13 @@ import {
   SafeAreaView,
   StatusBar,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import { fetchEjerciciosDetails, deleteRutina } from "../../../services/rutinasPeticiones";
+import { fetchEjerciciosDetails, deleteRutina, asignarRutina } from "../../../services/rutinasPeticiones";
 import { DiaEntrenamiento } from "./components/DiaEnternamiento";
-
+import { AuthContext } from "../../../context/AuthContext";
 
 export default function DetalleRutinaScreen() {
   const route = useRoute();
@@ -21,6 +22,7 @@ export default function DetalleRutinaScreen() {
   const [rutina, setRutina] = useState(route.params?.rutina || null);
   const [loading, setLoading] = useState(true);
   const [ejerciciosData, setEjerciciosData] = useState({});
+  const { user } = useContext(AuthContext);
 
   useEffect(() => {
     const obtenerDatos = async () => {
@@ -38,7 +40,7 @@ export default function DetalleRutinaScreen() {
   const renderNivelEstrellas = (nivel) => {
     const nivelNumerico =
       typeof nivel === "string"
-        ? parseInt(nivel.replace(/\D/g, "")) || 3 // Extraer número o default a 3
+        ? parseInt(nivel.replace(/\D/g, "")) || 3
         : typeof nivel === "number"
         ? nivel
         : 3;
@@ -64,6 +66,18 @@ export default function DetalleRutinaScreen() {
 
   const editRutina = () => {
     navigation.navigate("EditarRutina", { rutina });
+  };
+
+  const handleAsignarRutina = async () => {
+    try {
+
+      console.log(user.uid, rutina._id)
+      
+      const result = await asignarRutina(user.uid, rutina._id);
+      Alert.alert("Rutina asignada", result);
+    } catch (error) {
+      Alert.alert("Error", "No se pudo asignar la rutina.");
+    }
   };
 
   if (loading) {
@@ -159,13 +173,23 @@ export default function DetalleRutinaScreen() {
 
           {rutina.dias.map((dia, index) => (
             <DiaEntrenamiento
-            key={index}
-            dia={dia}
-            index={index}
-            ejerciciosData={ejerciciosData}
-          />
+              key={index}
+              dia={dia}
+              index={index}
+              ejerciciosData={ejerciciosData}
+            />
           ))}
         </View>
+
+        {/* Si la rutina es pública, mostramos el botón para asignarla */}
+        {rutina.publica && (
+          <View style={styles.assignContainer}>
+            <TouchableOpacity style={styles.assignButton} onPress={handleAsignarRutina}>
+              <Ionicons name="checkmark-circle-outline" size={20} color="white" />
+              <Text style={styles.assignButtonText}>Añadir a mis rutinas</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
 
       <View style={styles.footer}>
@@ -321,6 +345,23 @@ const styles = StyleSheet.create({
   backButtonText: {
     color: "white",
     fontSize: 14,
+    fontWeight: "bold",
+  },
+  assignContainer: {
+    alignItems: "center",
+    marginVertical: 20,
+  },
+  assignButton: {
+    backgroundColor: "#4CAF50",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  assignButtonText: {
+    color: "white",
+    marginLeft: 10,
     fontWeight: "bold",
   },
 });

@@ -1,12 +1,10 @@
+// RutinaItem.js
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
-
-
-
-export function renderRutinaItem ({ item }){
+const RutinaItem = ({ item }) => {
   const navigation = useNavigation();
   
   const handleRutinaPress = (rutina) => {
@@ -20,56 +18,56 @@ export function renderRutinaItem ({ item }){
   };
 
   return (
-  <TouchableOpacity
-    style={styles.card}
-    onPress={() => handleRutinaPress(item)}
-    activeOpacity={0.7}
-  >
-    <View style={styles.cardIconContainer}>
-      <Ionicons name="calendar-outline" size={40} color="#6200EE" />
-    </View>
-    <View style={styles.cardContent}>
-      <Text style={styles.rutinaName}>{item.nombre}</Text>
-
-      <View style={styles.nivelContainer}>
-        {getNivelIcon(item.nivel).map((icon, index) => (
-          <Ionicons
-            key={index}
-            name={icon}
-            size={16}
-            color={icon === "star" ? "#FFC107" : "#BDBDBD"}
-            style={styles.starIcon}
-          />
-        ))}
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => handleRutinaPress(item)}
+      activeOpacity={0.7}
+    >
+      <View style={styles.cardIconContainer}>
+        <Ionicons name="calendar-outline" size={40} color="#6200EE" />
       </View>
+      <View style={styles.cardContent}>
+        <Text style={styles.rutinaName}>{item.nombre}</Text>
 
-      <Text style={styles.diasText}>
-        {item.dias.length} {item.dias.length === 1 ? "día" : "días"}
-      </Text>
-
-      <View style={styles.infoContainer}>
-        <View style={styles.infoItem}>
-          <Ionicons name="time-outline" size={16} color="#6200EE" />
-          <Text style={styles.infoText}>
-            {new Date(item.fechaCreacion).toLocaleDateString()}
-          </Text>
+        <View style={styles.nivelContainer}>
+          {getNivelIcon(item.nivel).map((icon, index) => (
+            <Ionicons
+              key={index}
+              name={icon}
+              size={16}
+              color={icon === "star" ? "#FFC107" : "#BDBDBD"}
+              style={styles.starIcon}
+            />
+          ))}
         </View>
 
-        {item.publica && (
-          <View style={styles.publicBadge}>
-            <Ionicons name="globe-outline" size={14} color="white" />
-            <Text style={styles.publicText}>Pública</Text>
+        <Text style={styles.diasText}>
+          {item.dias.length} {item.dias.length === 1 ? "día" : "días"}
+        </Text>
+
+        <View style={styles.infoContainer}>
+          <View style={styles.infoItem}>
+            <Ionicons name="time-outline" size={16} color="#6200EE" />
+            <Text style={styles.infoText}>
+              {new Date(item.fechaCreacion).toLocaleDateString()}
+            </Text>
           </View>
-        )}
+
+          {item.publica && (
+            <View style={styles.publicBadge}>
+              <Ionicons name="globe-outline" size={14} color="white" />
+              <Text style={styles.publicText}>Pública</Text>
+            </View>
+          )}
+        </View>
       </View>
-    </View>
-    <Ionicons
-      name="chevron-forward"
-      size={24}
-      color="#9E9E9E"
-      style={styles.arrow}
-    />
-  </TouchableOpacity>
+      <Ionicons
+        name="chevron-forward"
+        size={24}
+        color="#9E9E9E"
+        style={styles.arrow}
+      />
+    </TouchableOpacity>
   );
 };
 
@@ -144,4 +142,9 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginLeft: 4,
   },
+  arrow: {
+    marginRight: 12,
+  },
 });
+
+export default RutinaItem;

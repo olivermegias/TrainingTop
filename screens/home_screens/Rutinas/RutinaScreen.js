@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,10 +9,11 @@ import {
   StatusBar,
   ScrollView,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { fetchRutinasPublicas, fetchRutinasUsuario } from "../../../services/rutinasPeticiones";
-import { renderRutinaItem } from "./components/RutinaItem";
+import RutinaItem  from "./components/RutinaItem";
+import { AuthContext } from "../../../context/AuthContext";
 
 export default function RutinaScreen() {
   const [rutinasUsuario, setRutinasUsuario] = useState([]);
@@ -21,10 +22,14 @@ export default function RutinaScreen() {
   const [loadingPublicas, setLoadingPublicas] = useState(true);
   const navigation = useNavigation();
 
+  const { user } = useContext(AuthContext);
+
+  console.log(user.uid);
+
   useEffect(() => {
     const obtenerDatos = async () => {
-      const { rutinasUsuario, loadingUsuario } = await fetchRutinasUsuario();
-      const { rutinasPublicasUnicas, loadingPublicas } = await fetchRutinasPublicas(rutinasUsuario);
+      const { rutinasUsuario, loadingUsuario } = await fetchRutinasUsuario(user.uid);
+      const { rutinasPublicasUnicas, loadingPublicas } = await fetchRutinasPublicas();
       setRutinasUsuario(rutinasUsuario);
       setLoadingUsuario(loadingUsuario);
       setRutinasPublicas(rutinasPublicasUnicas);
@@ -32,6 +37,25 @@ export default function RutinaScreen() {
     };
     obtenerDatos();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      const obtenerDatosUsuario = async () => {
+        try {
+          const { rutinasUsuario, loadingUsuario } = await fetchRutinasUsuario(user.uid);
+          setRutinasUsuario(rutinasUsuario);
+          setLoadingUsuario(loadingUsuario);
+          console.log(`${rutinasUsuario} + ${loadingUsuario}`);
+        } catch (error) {
+          console.error("Error al cargar las rutinas del usuario", error);
+          // En caso de error, podríamos setear un estado o limpiar las rutinas.
+          setRutinasUsuario([]);
+          setLoadingUsuario(false);
+        }
+      };
+      obtenerDatosUsuario();
+    }, [user]) // Dependemos de user para que cuando cambie se vuelva a llamar.
+  );
 
   if (loadingUsuario && loadingPublicas) {
     return (
@@ -56,7 +80,7 @@ export default function RutinaScreen() {
 
           {loadingUsuario ? (
             <ActivityIndicator color="#6200EE" style={styles.sectionLoading} />
-          ) : rutinasUsuario.length === 0 ? (
+          ) : (rutinasUsuario && rutinasUsuario.length) === 0 ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="fitness-outline" size={40} color="#BDBDBD" />
               <Text style={styles.emptyText}>No tienes rutinas guardadas</Text>
@@ -70,7 +94,7 @@ export default function RutinaScreen() {
           ) : (
             rutinasUsuario.map((item) => (
               <View key={item._id.toString()}>
-                {renderRutinaItem({ item })}
+                <RutinaItem item={item} />
               </View>
             ))
           )}
@@ -97,7 +121,7 @@ export default function RutinaScreen() {
           ) : (
             rutinasPublicas.map((item) => (
               <View key={item._id.toString()}>
-                {renderRutinaItem({ item })}
+                <RutinaItem item={item} />
               </View>
             ))
           )}

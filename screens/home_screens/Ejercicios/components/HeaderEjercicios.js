@@ -38,6 +38,8 @@ export function HeaderEjercicios({
   appliedFilters,
   toggleFilter,
   setIsFilterModalVisible,
+  setAppliedFilters,
+  setSearchText,
   clearFilters,
   resultsCount,
 }) {

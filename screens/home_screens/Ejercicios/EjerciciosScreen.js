@@ -186,6 +186,8 @@ export default function EjerciciosScreen() {
           appliedFilters={appliedFilters}
           toggleFilter={toggleFilter}
           setIsFilterModalVisible={setIsFilterModalVisible}
+          setAppliedFilters={setAppliedFilters}
+          setSearchText={setSearchText}
           clearFilters={clearFilters}
           resultsCount={filteredEjercicios.length}
         />

@@ -7,34 +7,36 @@ const API_URL_WEB = "http://localhost:5005";
 
 const API_URL = Platform.OS === "android" ? API_URL_ANDROID : API_URL_WEB;
 
-export const fetchRutinasPublicas = async (rutinasUsuario) => {
+export const fetchRutinasPublicas = async () => {
   try {
     const response = await axios.get(`${API_URL}/rutinas/publicas`);
-    // Filtramos para evitar mostrar rutinas que ya pertenecen al usuario
-    const rutinasPublicasUnicas = response.data.filter(
-      (rutinaPublica) =>
-        !rutinasUsuario.some(
-          (rutinaUser) => rutinaUser._id === rutinaPublica._id
-        )
-    );
-    const loadingPublicas = false;
-    return { rutinasPublicasUnicas, loadingPublicas }; // Retornamos las rutinas públicas únicas
+    return {
+      rutinasPublicasUnicas: response.data, // ← ya no filtramos
+      loadingPublicas: false,
+    };
   } catch (error) {
     console.error("Error al obtener rutinas públicas:", error);
-    return { rutinasPublicasUnicas: [], loadingPublicas: false };
+    return {
+      rutinasPublicasUnicas: [],
+      loadingPublicas: false,
+    };
   }
 };
 
-export const fetchRutinasUsuario = async () => {
+export const fetchRutinasUsuario = async (usuarioId) => {
   try {
-    const response = await axios.get(`${API_URL}/rutinas/usuario`);
-    const rutinasUsuario = response.data;
-    const loadingUsuario = false;
-    return { rutinasUsuario, loadingUsuario };
+    const response = await axios.get(`${API_URL}/rutinas/usuario/${usuarioId}`);
+    
+    console.log(`${API_URL}/rutinas/usuario/${usuarioId}`);
+    return {
+      rutinasUsuario: response.data, 
+      loadingUsuario: false,
+    };
   } catch (error) {
-    console.error("Error al obtener rutinas del usuario:", error);
-    const loadingUsuario = false;
-    return { rutinasUsuario: [], loadingUsuario };
+    return {
+      rutinasUsuario: [],
+      loadingUsuario: false,
+    };
   }
 };
 
@@ -100,4 +102,14 @@ export const deleteRutina = async () => {
       },
     ]
   );
+};
+
+export const asignarRutina = async (usuarioId, rutinaId) => {
+  try {
+    const response = await axios.post(`${API_URL}/rutinas/asignar`, { usuarioId, rutinaId });
+    return response.data;
+  } catch (error) {
+    console.error("Error al asignar rutina:", error);
+    throw error;
+  }
 };
