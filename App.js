@@ -4,7 +4,8 @@ import RootNavigation from "./navigation/RootNavigation";
 import { AuthProvider } from "./context/AuthContext";
 import { StatusBar } from "expo-status-bar";
 import * as NavigationBar from "expo-navigation-bar";
-import { Platform, SafeAreaView, StyleSheet } from "react-native";
+import { Platform, StyleSheet } from "react-native";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 export default function App() {
   useEffect(() => {
@@ -16,10 +17,12 @@ export default function App() {
 
   return (
     <AuthProvider>
-      <SafeAreaView style={styles.container}>
-        <StatusBar hidden={true} />
-        <RootNavigation />
-      </SafeAreaView>
+      <SafeAreaProvider>
+        <SafeAreaView style={styles.container}>
+          <StatusBar hidden={false} mode={"dark"}/>
+          <RootNavigation />
+        </SafeAreaView>
+      </SafeAreaProvider>
     </AuthProvider>
   );
 }
@@ -28,5 +31,5 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
-  }
+  },
 });

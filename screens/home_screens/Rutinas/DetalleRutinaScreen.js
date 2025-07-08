@@ -9,12 +9,14 @@ import {
   StatusBar,
   ActivityIndicator,
   Alert,
+  Platform,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { fetchEjerciciosDetails, deleteRutina, asignarRutina } from "../../../services/rutinasPeticiones";
 import { DiaEntrenamiento } from "./components/DiaEnternamiento";
 import { AuthContext } from "../../../context/AuthContext";
+import { Toast } from "../../../components/ToastComponent";
 
 export default function DetalleRutinaScreen() {
   const route = useRoute();
@@ -23,6 +25,11 @@ export default function DetalleRutinaScreen() {
   const [loading, setLoading] = useState(true);
   const [ejerciciosData, setEjerciciosData] = useState({});
   const { user } = useContext(AuthContext);
+  const [toast, setToast] = useState({
+    visible: false,
+    message: '',
+    type: 'info'
+  });
 
   useEffect(() => {
     const obtenerDatos = async () => {
@@ -68,15 +75,96 @@ export default function DetalleRutinaScreen() {
     navigation.navigate("EditarRutina", { rutina });
   };
 
+  const handleDeleteRutina = async () => {
+    // En Android, mostrar el alert de confirmación
+    if (Platform.OS === 'android') {
+      Alert.alert(
+        "Eliminar Rutina",
+        "¿Estás seguro de que deseas eliminar esta rutina? Esta acción no se puede deshacer.",
+        [
+          { text: "Cancelar", style: "cancel" },
+          { 
+            text: "Eliminar", 
+            style: "destructive",
+            onPress: async () => {
+              await deleteRutinaAction();
+            }
+          }
+        ]
+      );
+    } else {
+      // En web, eliminar directamente sin confirmación
+      await deleteRutinaAction();
+    }
+  };
+
+  // Función para manejar la eliminación de la rutina
+  const deleteRutinaAction = async () => {
+    try {
+      await deleteRutina(rutina._id);
+      
+      if (Platform.OS === 'android') {
+        Alert.alert("Éxito", "Rutina eliminada correctamente", [
+          { 
+            text: "OK", 
+            onPress: () => navigation.goBack() 
+          }
+        ]);
+      } else {
+        // En web, mostrar un toast y luego navegar hacia atrás
+        setToast({
+          visible: true,
+          message: "Rutina eliminada correctamente",
+          type: "success"
+        });
+        
+        // Dar tiempo al toast para mostrarse antes de navegar
+        setTimeout(() => {
+          navigation.goBack();
+        }, 1500);
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.error || "No se pudo eliminar la rutina";
+      
+      if (Platform.OS === 'android') {
+        Alert.alert("Error", errorMessage);
+      } else {
+        // En web, mostrar un toast con el error
+        setToast({
+          visible: true,
+          message: errorMessage,
+          type: "error"
+        });
+        console.error(errorMessage);
+      }
+    }
+  };
+
   const handleAsignarRutina = async () => {
     try {
-
-      console.log(user.uid, rutina._id)
-      
       const result = await asignarRutina(user.uid, rutina._id);
-      Alert.alert("Rutina asignada", result);
+      
+      if (Platform.OS === 'android') {
+        Alert.alert("Rutina asignada", result);
+      } else {
+        // En web, mostrar un toast en lugar del Alert
+        setToast({
+          visible: true,
+          message: "Rutina asignada correctamente",
+          type: "success"
+        });
+      }
     } catch (error) {
-      Alert.alert("Error", "No se pudo asignar la rutina.");
+      if (Platform.OS === 'android') {
+        Alert.alert("Error", "No se pudo asignar la rutina.");
+      } else {
+        // En web, mostrar un toast con el error
+        setToast({
+          visible: true,
+          message: "No se pudo asignar la rutina",
+          type: "error"
+        });
+      }
     }
   };
 
@@ -106,10 +194,15 @@ export default function DetalleRutinaScreen() {
       </SafeAreaView>
     );
   }
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#F5F5F5" />
+      <Toast 
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onDismiss={() => setToast({...toast, visible: false})}
+      />
       <ScrollView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity
@@ -130,7 +223,7 @@ export default function DetalleRutinaScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.actionIcon}
-                  onPress={deleteRutina}
+                  onPress={handleDeleteRutina}
                 >
                   <Ionicons name="trash-outline" size={24} color="#F44336" />
                 </TouchableOpacity>

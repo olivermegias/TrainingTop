@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { StatusBar } from "expo-status-bar";
 import {
   StyleSheet,
@@ -12,19 +12,21 @@ import {
   Alert,
 } from "react-native";
 import { BlurView } from "expo-blur";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { appFirebase } from "../firebase.js";
-import { getAuth } from "firebase/auth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+// Importar contexto de autenticación
+import { AuthContext } from "../context/AuthContext";
 
 // Importar toast y ToastContainer
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-const auth = getAuth(appFirebase);
-
 export default function IniciarSesion(props) {
-  const [email, setEmail] = useState();
-  const [password, setPassword] = useState();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  
+  // Usamos el contexto de autenticación
+  const { iniciarSesion, loading } = useContext(AuthContext);
 
   const validateEmail = (email) => {
     const regex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
@@ -33,22 +35,29 @@ export default function IniciarSesion(props) {
 
   const handleIniciarSesion = async () => {
     if (!validateEmail(email)) {
-      toast.error("Por favor, ingrese un correo electrónico válido.");
-      Alert.alert("Por favor, ingrese un correo electrónico válido.");
+      Platform.OS === 'web' ? toast.error("Por favor, ingrese un correo electrónico válido.") : 
+                             Alert.alert("Error", "Por favor, ingrese un correo electrónico válido.");
       return;
     }
+    
     try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      const user = userCredential.user;
-      toast.success(`Usuario logueado: ${user.email}`);
-      Alert.alert("Usuario logueado:", user.email);
+      // Usamos la función del contexto
+      const result = await iniciarSesion(email, password);
+      
+      if (result.success) {
+        // Mostrar mensaje de éxito
+        Platform.OS === 'web' ? toast.success(`Usuario logueado: ${result.user.email}`) : 
+                               Alert.alert("Éxito", `Usuario logueado: ${result.user.email}`);
+        
+        // No es necesario navegar manualmente - RootNavigator lo hará automáticamente
+      } else {
+        // Mostrar mensaje de error
+        Platform.OS === 'web' ? toast.error(`Error: ${result.error.message}`) : 
+                               Alert.alert("Error", result.error.message);
+      }
     } catch (error) {
-      toast.error(`Error: ${error.message}`);
-      Alert.alert("Error ", error.message);
+      Platform.OS === 'web' ? toast.error(`Error: ${error.message}`) : 
+                             Alert.alert("Error", error.message);
     }
   };
 
@@ -108,31 +117,35 @@ export default function IniciarSesion(props) {
               style={styles.input}
               placeholder="E-mail"
               onChangeText={(text) => setEmail(text)}
-              keyboardType="email-address" // Agrega esto
-              autoCapitalize="none" // Para evitar mayúsculas innecesarias
-              onFocus={() => {}}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
             />
             <TextInput
               style={styles.input}
               placeholder="Password"
               onChangeText={(text) => setPassword(text)}
               secureTextEntry
+              value={password}
             />
             <TouchableOpacity
               style={[
                 styles.boton,
                 { backgroundColor: "#22222280", marginTop: 30 },
+                loading && { opacity: 0.7 } // Añadimos un estilo de deshabilitado durante la carga
               ]}
               onPress={handleIniciarSesion}
+              disabled={loading} // Deshabilitamos el botón durante la carga
             >
               <Text style={{ color: "white", fontWeight: "bold" }}>
-                Inicar Sesión
+                {loading ? "Cargando..." : "Iniciar Sesión"}
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.boton, { backgroundColor: "#00000080" }]}
               onPress={() => props.navigation.navigate("CrearUsuario")}
+              disabled={loading} // También deshabilitamos este botón durante la carga
             >
               <Text style={{ color: "white", fontWeight: "bold" }}>
                 Crear Cuenta

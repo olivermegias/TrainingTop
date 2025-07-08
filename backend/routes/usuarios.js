@@ -32,13 +32,13 @@ router.post("/registro", async (req, res) => {
 router.get("/:uid", async (req, res) => {
   try {
     const { uid } = req.params;
-    const usuario = await Usuario.findOne({ uid });
+    const usuario = await Usuario.findOne({ uid }); // Busca por UID
 
     if (!usuario) {
       return res.status(404).json({ message: "Usuario no encontrado" });
     }
 
-    res.json(usuario);
+    res.json(usuario); // Devuelve los datos del usuario
   } catch (error) {
     res.status(500).json({ message: "Error en el servidor", error });
   }

@@ -1,30 +1,83 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import AppNavigation from "./AppNavigation.js";
 import AuthNavigation from "./AuthNavigation.js";
 import { AuthContext } from "../context/AuthContext.js";
-import { View, Image, Platform } from "react-native";
-
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { View, Image, Text } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { fetchUsuarioByUid } from "../services/usuarioPeticiones.js";
 
 export default function RootNavigator() {
-  const { user, loading } = useContext(AuthContext);
+  const { user, loading, setUser, setLoading } = useContext(AuthContext);
+  const [isCheckingToken, setIsCheckingToken] = useState(true);
 
-  if (loading) {
+  useEffect(() => {
+    const checkToken = async () => {
+      try {
+        setIsCheckingToken(true);
+        
+        // Verificar si hay un token guardado
+        const storedToken = await AsyncStorage.getItem("auth_token");
+        
+        if (storedToken) {
+          setLoading(true);
+          try {
+            // Obtener datos del usuario usando el token
+            const usuario = await fetchUsuarioByUid(storedToken);
+            
+            if (usuario) {
+              console.log("Usuario encontrado con token:", usuario);
+              setUser(usuario); // Actualiza el contexto con el usuario
+            } else {
+              console.log("No se encontró usuario, eliminando token");
+              await AsyncStorage.removeItem("auth_token");
+            }
+          } catch (fetchError) {
+            console.error("Error al obtener usuario:", fetchError);
+            // Si hay un error al obtener el usuario, eliminamos el token
+            await AsyncStorage.removeItem("auth_token");
+          } finally {
+            setLoading(false);
+          }
+        } else {
+          console.log("No hay token guardado");
+        }
+      } catch (error) {
+        console.error("Error al verificar el token:", error);
+      } finally {
+        setIsCheckingToken(false);
+      }
+    };
+
+    checkToken();
+  }, []);
+
+  // Para depuración
+  console.log("Estado de navegación:", { 
+    user: user ? "Existe usuario" : "No hay usuario", 
+    isCheckingToken, 
+    loading 
+  });
+
+  // Mostrar un loader mientras se verifica el token o se está cargando
+  if (isCheckingToken || loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Image source={require("../assets/icons8-banca-pesas.gif")} />
+        <Image 
+          source={require("../assets/icons8-banca-pesas.gif")} 
+          style={{ width: 50, height: 50 }}
+        />
+        <Text style={{ marginTop: 10 }}>
+          {isCheckingToken ? "Verificando sesión..." : "Cargando..."}
+        </Text>
       </View>
     );
   }
 
+  // Renderizar la navegación apropiada según si hay un usuario o no
   return (
-    <>
-      <NavigationContainer>
-        {user ? <AppNavigation /> : <AuthNavigation />}
-      </NavigationContainer>
-      {Platform.OS === "web" && <ToastContainer position="top-center" />}
-    </>
+    <NavigationContainer>
+      {user ? <AppNavigation /> : <AuthNavigation />}
+    </NavigationContainer>
   );
 }

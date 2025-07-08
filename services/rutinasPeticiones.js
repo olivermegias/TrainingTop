@@ -2,7 +2,7 @@ import axios from "axios";
 import { Platform } from "react-native";
 import { Alert } from "react-native";
 
-const API_URL_ANDROID = "http://10.0.2.2:5005";
+const API_URL_ANDROID = "http://192.168.1.21:5005";
 const API_URL_WEB = "http://localhost:5005";
 
 const API_URL = Platform.OS === "android" ? API_URL_ANDROID : API_URL_WEB;
@@ -26,10 +26,9 @@ export const fetchRutinasPublicas = async () => {
 export const fetchRutinasUsuario = async (usuarioId) => {
   try {
     const response = await axios.get(`${API_URL}/rutinas/usuario/${usuarioId}`);
-    
-    console.log(`${API_URL}/rutinas/usuario/${usuarioId}`);
+
     return {
-      rutinasUsuario: response.data, 
+      rutinasUsuario: response.data,
       loadingUsuario: false,
     };
   } catch (error) {
@@ -63,7 +62,6 @@ export const fetchEjerciciosDetails = async (rutina) => {
     const response = await axios.get(
       `${API_URL}/ejercicios/porIds?ids=${queryParams}`
     );
-
     // Crear un mapeo de ID a objeto ejercicio
     const ejerciciosMap = {};
     response.data.forEach((ejercicio) => {
@@ -81,35 +79,55 @@ export const fetchEjerciciosDetails = async (rutina) => {
   }
 };
 
-export const deleteRutina = async () => {
-  Alert.alert(
-    "Eliminar Rutina",
-    "¿Estás seguro que deseas eliminar esta rutina?",
-    [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Eliminar",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await axios.delete(`${API_URL}/rutinas/${rutina._id}`);
-            navigation.goBack();
-          } catch (error) {
-            console.error("Error al eliminar rutina:", error);
-            Alert.alert("Error", "No se pudo eliminar la rutina");
-          }
-        },
-      },
-    ]
-  );
-};
-
 export const asignarRutina = async (usuarioId, rutinaId) => {
   try {
-    const response = await axios.post(`${API_URL}/rutinas/asignar`, { usuarioId, rutinaId });
+    const response = await axios.post(`${API_URL}/rutinas/asignar`, {
+      usuarioId,
+      rutinaId,
+    });
     return response.data;
   } catch (error) {
     console.error("Error al asignar rutina:", error);
     throw error;
+  }
+};
+
+export const crearRutina = async (rutina) => {
+  try {
+    const response = await axios.post(`${API_URL}/rutinas`, rutina);
+    return response.data;
+  } catch (error) {
+    console.error("Error al crear rutina:", error);
+    throw error;
+  }
+};
+
+export const deleteRutina = async (rutinaId) => {
+  try {
+    const response = await axios.delete(`${API_URL}/rutinas/${rutinaId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error al eliminar rutina:", error);
+    throw error;
+  }
+};
+
+export const actualizarRutina = async (rutinaId, datosRutina) => {
+  try {
+    console.log(datosRutina.dias.ejercicios);
+    const response = await axios.put(
+      `${API_URL}/rutinas/${rutinaId}`,
+      datosRutina
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Error al actualizar la rutina:",
+      error.response?.data || error.message
+    );
+    throw new Error(
+      error.response?.data?.error || "Error al actualizar la rutina"
+    );
   }
 };

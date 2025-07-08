@@ -1,9 +1,10 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 
 import RutinaScreen from '../../screens/home_screens/Rutinas/RutinaScreen';
 import DetalleRutinaScreen from '../../screens/home_screens/Rutinas/DetalleRutinaScreen';
+import CrearRutinasScreen from '../../screens/home_screens/Rutinas/CrearRutinasScreen';
+import EditarRutinaScreen from '../../screens/home_screens/Rutinas/EditarRutinaScreen';
 
 const Stack = createStackNavigator();
 
@@ -20,6 +21,20 @@ export default function RutinaNavigation() {
         <Stack.Screen 
           name="DetalleRutina" 
           component={DetalleRutinaScreen} 
+          options={{ 
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen 
+          name="CrearRutina" 
+          component={CrearRutinasScreen} 
+          options={{ 
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen 
+          name="EditarRutina" 
+          component={EditarRutinaScreen} 
           options={{ 
             headerShown: false,
           }}

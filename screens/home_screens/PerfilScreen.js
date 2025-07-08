@@ -1,5 +1,4 @@
-import React, { useContext, useState, useEffect } from "react";
-import axios from "axios";
+import { useContext, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,15 +6,10 @@ import {
   Modal,
   StyleSheet,
   ActivityIndicator,
-  Platform
 } from "react-native";
 import { AuthContext } from "../../context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
-
-const API_URL_ANDROID="http://10.0.2.2:5005"
-const API_URL_WEB="http://localhost:5005"
-
-const API_URL = Platform.OS === 'android' ? API_URL_ANDROID : API_URL_WEB;
+import { fetchUsuarioByUid } from "../../services/usuarioPeticiones";
 
 export default function Perfil() {
   const { user, cerrarSesion } = useContext(AuthContext); // Obtener usuario desde Firebase
@@ -24,20 +18,19 @@ export default function Perfil() {
   const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
-    if (!user?.uid) return;
-    
-    axios.get(`${API_URL}/usuarios/${user.uid}`)
-      .then(response => setNombre(response.data.nombre))
-      .catch(error => console.error("Error obteniendo usuario:", error))
-      .finally(() => setLoading(false));
+    setNombre(user.nombre);
+    setLoading(false);
   }, [user]);
-  
 
   const toggleModal = () => setModalVisible(!modalVisible);
 
-  const confirmAction = () => {
-    cerrarSesion();
-    toggleModal();
+  const confirmAction = async () => {
+    try {
+      await cerrarSesion(); // Llama a la función del contexto
+      toggleModal(); // Cierra el modal
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+    }
   };
 
   return (

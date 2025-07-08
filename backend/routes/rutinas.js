@@ -7,38 +7,84 @@ const router = express.Router();
 // 📌 Crear una nueva rutina
 router.post("/", async (req, res) => {
   try {
-    const { nombre, descripcion, nivel, publica, dias } = req.body;
-    console.log(req.body)
+    console.log("🔥 Petición POST recibida en /rutinas");
+    console.log("📦 Body recibido:", req.body);
+    const {
+      nombre,
+      descripcion,
+      nivel,
+      publica,
+      dias,
+      usuarioId,
+      fechaCreacion,
+    } = req.body;
+
+    console.log("👤 Buscando usuario con ID:", usuarioId); // ← NUEVO LOG
 
     if (!nombre || !dias || !Array.isArray(dias)) {
       return res.status(400).json({ error: "Faltan datos obligatorios" });
     }
 
-    // Validar que los ejercicios tienen un `id` válido
+    // Crear la nueva rutina
     const nuevaRutina = new Rutina({
       nombre,
       descripcion,
       nivel,
       publica,
-      dias: dias.map(dia => ({
+      usuarioId,
+      fechaCreacion,
+      dias: dias.map((dia) => ({
         nombre: dia.nombre,
-        ejercicios: dia.ejercicios.map(ejercicio => ({
-          ejercicio: ejercicio.ejercicio, // Guardamos `id`, NO `_id`
+        ejercicios: dia.ejercicios.map((ejercicio) => ({
+          ejercicio: ejercicio.ejercicio,
           series: ejercicio.series,
           repeticiones: ejercicio.repeticiones,
-          descanso: ejercicio.descanso
-        }))
-      }))
+          descanso: ejercicio.descanso,
+          peso: ejercicio.peso || undefined,
+        })),
+      })),
     });
 
+    console.log("💾 Guardando rutina..."); // ← NUEVO LOG
     const rutinaGuardada = await nuevaRutina.save();
-    res.status(201).json(rutinaGuardada);
+    console.log("✅ Rutina guardada con ID:", rutinaGuardada._id); // ← NUEVO LOG
+
+    // ASIGNAR LA RUTINA AL USUARIO AUTOMÁTICAMENTE
+    console.log("🔍 Buscando usuario en BD..."); // ← NUEVO LOG
+    const usuario = await Usuario.findOne({ uid: usuarioId });
+    console.log("👤 Usuario encontrado:", usuario ? "SÍ" : "NO"); // ← NUEVO LOG
+    
+    if (!usuario) {
+      console.log("❌ Usuario no encontrado con uid:", usuarioId); // ← NUEVO LOG
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    // Inicializar array de rutinas si no existe
+    if (!usuario.rutinas) {
+      usuario.rutinas = [];
+    }
+
+    // Evitar duplicados y añadir la rutina
+    if (!usuario.rutinas.includes(rutinaGuardada._id)) {
+      usuario.rutinas.push(rutinaGuardada._id);
+      await usuario.save();
+      console.log("✅ Usuario actualizado con nueva rutina"); // ← NUEVO LOG
+    }
+
+    res.status(201).json({
+      message: "Rutina creada y asignada correctamente",
+      rutina: rutinaGuardada,
+      usuarioActualizado: {
+        id: usuario._id,
+        rutinas: usuario.rutinas
+      }
+    });
+
   } catch (error) {
     console.error("❌ Error al crear rutina:", error);
     res.status(500).json({ error: "Error al guardar la rutina" });
   }
 });
-
 // 📌 Obtener todas las rutinas
 router.get("/", async (req, res) => {
   try {
@@ -52,7 +98,9 @@ router.get("/", async (req, res) => {
 // 📌 Obtener solo rutinas públicas
 router.get("/publicas", async (req, res) => {
   try {
-    const rutinas = await Rutina.find({ publica: true }).populate("dias.ejercicios.ejercicio");
+    const rutinas = await Rutina.find({ publica: true }).populate(
+      "dias.ejercicios.ejercicio"
+    );
     res.json(rutinas);
   } catch (error) {
     res.status(500).json({ error: "Error al obtener rutinas públicas" });
@@ -67,10 +115,16 @@ router.put("/:id", async (req, res) => {
       return res.status(404).json({ error: "Rutina no encontrada" });
     }
     if (rutina.publica) {
-      return res.status(403).json({ error: "No puedes modificar una rutina pública" });
+      return res
+        .status(403)
+        .json({ error: "No puedes modificar una rutina pública" });
     }
 
-    const rutinaActualizada = await Rutina.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const rutinaActualizada = await Rutina.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
     res.json(rutinaActualizada);
   } catch (error) {
     res.status(500).json({ error: "Error al modificar la rutina" });
@@ -85,7 +139,9 @@ router.delete("/:id", async (req, res) => {
       return res.status(404).json({ error: "Rutina no encontrada" });
     }
     if (rutina.publica) {
-      return res.status(403).json({ error: "No puedes eliminar una rutina pública" });
+      return res
+        .status(403)
+        .json({ error: "No puedes eliminar una rutina pública" });
     }
 
     await Rutina.findByIdAndDelete(req.params.id);
@@ -106,7 +162,9 @@ router.post("/asignar", async (req, res) => {
       return res.status(404).json({ error: "Usuario o rutina no encontrados" });
     }
     if (!rutina.publica) {
-      return res.status(403).json({ error: "Solo se pueden asignar rutinas públicas" });
+      return res
+        .status(403)
+        .json({ error: "Solo se pueden asignar rutinas públicas" });
     }
 
     if (!usuario.rutinas) {
@@ -119,7 +177,10 @@ router.post("/asignar", async (req, res) => {
       await usuario.save();
     }
 
-    res.json({ message: "Rutina asignada correctamente", rutinas: usuario.rutinas });
+    res.json({
+      message: "Rutina asignada correctamente",
+      rutinas: usuario.rutinas,
+    });
   } catch (error) {
     res.status(500).json({ error: "Error al asignar la rutina" });
   }
@@ -135,10 +196,15 @@ router.post("/desasignar", async (req, res) => {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
 
-    usuario.rutinas = usuario.rutinas.filter(id => id.toString() !== rutinaId);
+    usuario.rutinas = usuario.rutinas.filter(
+      (id) => id.toString() !== rutinaId
+    );
     await usuario.save();
 
-    res.json({ message: "Rutina desasignada correctamente", rutinas: usuario.rutinas });
+    res.json({
+      message: "Rutina desasignada correctamente",
+      rutinas: usuario.rutinas,
+    });
   } catch (error) {
     res.status(500).json({ error: "Error al desasignar la rutina" });
   }
@@ -146,13 +212,15 @@ router.post("/desasignar", async (req, res) => {
 
 router.get("/usuario/:uid", async (req, res) => {
   try {
-    const usuario = await Usuario.findOne({ uid: req.params.uid }).populate("rutinas");
+    const usuario = await Usuario.findOne({ uid: req.params.uid }).populate(
+      "rutinas"
+    );
 
     if (!usuario) {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
 
-    res.json(usuario.rutinas );
+    res.json(usuario.rutinas);
   } catch (error) {
     console.error("❌ Error al obtener las rutinas del usuario:", error);
     res.status(500).json({ error: "Error al obtener las rutinas del usuario" });

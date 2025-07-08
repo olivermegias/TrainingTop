@@ -24,8 +24,6 @@ export default function RutinaScreen() {
 
   const { user } = useContext(AuthContext);
 
-  console.log(user.uid);
-
   useEffect(() => {
     const obtenerDatos = async () => {
       const { rutinasUsuario, loadingUsuario } = await fetchRutinasUsuario(user.uid);
@@ -45,7 +43,6 @@ export default function RutinaScreen() {
           const { rutinasUsuario, loadingUsuario } = await fetchRutinasUsuario(user.uid);
           setRutinasUsuario(rutinasUsuario);
           setLoadingUsuario(loadingUsuario);
-          console.log(`${rutinasUsuario} + ${loadingUsuario}`);
         } catch (error) {
           console.error("Error al cargar las rutinas del usuario", error);
           // En caso de error, podríamos setear un estado o limpiar las rutinas.

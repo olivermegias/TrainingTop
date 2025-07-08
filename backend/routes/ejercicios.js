@@ -69,7 +69,10 @@ const subirImagenACloudinary = async (imagenUrl, nombreEjercicio, indice) => {
 
     return result.secure_url;
   } catch (error) {
-    console.error(`❌ Error subiendo imagen a Cloudinary (${imagenUrl}):`, error.message);
+    console.error(
+      `❌ Error subiendo imagen a Cloudinary (${imagenUrl}):`,
+      error.message
+    );
     return null;
   }
 };
@@ -93,7 +96,9 @@ router.get("/importar", async (req, res) => {
       let imagenesCloudinary = [];
 
       if (ejercicioExistente && ejercicioExistente.imagenes.length > 0) {
-        console.log(`🔄 Ejercicio ${ejercicio.id} ya tiene imágenes, saltando subida.`);
+        console.log(
+          `🔄 Ejercicio ${ejercicio.id} ya tiene imágenes, saltando subida.`
+        );
         imagenesCloudinary = ejercicioExistente.imagenes;
       } else {
         const promesasImagenes = (ejercicio.images || []).map((imagen, i) =>
@@ -106,13 +111,19 @@ router.get("/importar", async (req, res) => {
           )
         );
 
-        imagenesCloudinary = (await Promise.all(promesasImagenes)).filter(Boolean);
+        imagenesCloudinary = (await Promise.all(promesasImagenes)).filter(
+          Boolean
+        );
       }
 
       if (imagenesCloudinary.length === 0) {
-        console.log(`🚫 Ejercicio ${ejercicio.id} no tiene imágenes. Será ignorado.`);
+        console.log(
+          `🚫 Ejercicio ${ejercicio.id} no tiene imágenes. Será ignorado.`
+        );
         if (ejercicioExistente) {
-          console.log(`🗑️ Eliminando ejercicio ${ejercicio.id} de la base de datos.`);
+          console.log(
+            `🗑️ Eliminando ejercicio ${ejercicio.id} de la base de datos.`
+          );
           await Ejercicio.deleteOne({ id: ejercicio.id });
         }
         continue; // No guardar si no hay imágenes
@@ -160,17 +171,44 @@ router.get("/", async (req, res) => {
 
 // Nueva ruta: Obtener un ejercicio por ID
 // Ruta para obtener ejercicios por IDs (para DetalleRutina)
+const mongoose = require("mongoose");
+
 router.get("/porIds", async (req, res) => {
   try {
     const ids = req.query.ids ? req.query.ids.split(",") : [];
 
     if (ids.length === 0) {
-      return res.status(400).json({ error: "Se requiere al menos un ID de ejercicio." });
+      return res
+        .status(400)
+        .json({ error: "Se requiere al menos un ID de ejercicio." });
     }
 
     console.log("📌 Buscando ejercicios con IDs:", ids);
 
-    const ejercicios = await Ejercicio.find({ id: { $in: ids } });
+    // Solo ids válidos para _id
+    const objectIds = ids
+      .filter((id) => mongoose.Types.ObjectId.isValid(id))
+      .map((id) => new mongoose.Types.ObjectId(id));
+
+    // Armamos el filtro dinámicamente
+    const orConditions = [];
+
+    if (ids.length > 0) {
+      orConditions.push({ id: { $in: ids } });
+    }
+
+    if (objectIds.length > 0) {
+      orConditions.push({ _id: { $in: objectIds } });
+    }
+
+    if (orConditions.length === 0) {
+      // No hay ningún filtro posible
+      return res.json([]);
+    }
+
+    const ejercicios = await Ejercicio.find({
+      $or: orConditions,
+    });
 
     res.json(ejercicios);
   } catch (error) {
@@ -183,11 +221,11 @@ router.get("/porIds", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const ejercicio = await Ejercicio.findOne({ id: req.params.id });
-    
+
     if (!ejercicio) {
       return res.status(404).json({ error: "Ejercicio no encontrado." });
     }
-    
+
     res.json(ejercicio);
   } catch (error) {
     console.error("Error al obtener ejercicio por ID:", error);
@@ -195,15 +233,13 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-
-
 // Nueva ruta: Obtener ejercicios filtrados por categoría
 router.get("/categoria/:categoria", async (req, res) => {
   try {
-    const ejercicios = await Ejercicio.find({ 
-      categoria: { $regex: req.params.categoria, $options: 'i' } 
+    const ejercicios = await Ejercicio.find({
+      categoria: { $regex: req.params.categoria, $options: "i" },
     });
-    
+
     res.json(ejercicios);
   } catch (error) {
     console.error("Error al obtener ejercicios por categoría:", error);
@@ -217,11 +253,11 @@ router.get("/musculo/:musculo", async (req, res) => {
     const musculo = req.params.musculo;
     const ejercicios = await Ejercicio.find({
       $or: [
-        { musculosPrimarios: { $regex: musculo, $options: 'i' } },
-        { musculosSecundarios: { $regex: musculo, $options: 'i' } }
-      ]
+        { musculosPrimarios: { $regex: musculo, $options: "i" } },
+        { musculosSecundarios: { $regex: musculo, $options: "i" } },
+      ],
     });
-    
+
     res.json(ejercicios);
   } catch (error) {
     console.error("Error al obtener ejercicios por músculo:", error);

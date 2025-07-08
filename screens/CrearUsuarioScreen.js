@@ -14,6 +14,7 @@ import { BlurView } from "expo-blur";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { appFirebase } from "../firebase.js";
 import { getAuth } from "firebase/auth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -49,14 +50,14 @@ export default function CrearUsuario(props) {
       );
 
       const user = userCredential.user;
-      const token = await user.getIdToken();
+      const token = user.uid
 
       await fetch("http://192.168.1.21:5005/usuarios/registro", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, nombre }),
       });
-
+      await AsyncStorage.setItem('auth_token', token);
       toast.success("Cuenta creada: Bienvenido " + nombre);
       Alert.alert("Cuenta creada", "Bienvenido: " + nombre);
     } catch (error) {
