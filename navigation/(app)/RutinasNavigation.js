@@ -5,6 +5,7 @@ import RutinaScreen from '../../screens/home_screens/Rutinas/RutinaScreen';
 import DetalleRutinaScreen from '../../screens/home_screens/Rutinas/DetalleRutinaScreen';
 import CrearRutinasScreen from '../../screens/home_screens/Rutinas/CrearRutinasScreen';
 import EditarRutinaScreen from '../../screens/home_screens/Rutinas/EditarRutinaScreen';
+import EjecutarRutinaScreen from '../../screens/entrenamiento/EjecutarRutinaScreen';
 
 const Stack = createStackNavigator();
 
@@ -35,6 +36,13 @@ export default function RutinaNavigation() {
         <Stack.Screen 
           name="EditarRutina" 
           component={EditarRutinaScreen} 
+          options={{ 
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen 
+          name="EjecutarRutina" 
+          component={EjecutarRutinaScreen} 
           options={{ 
             headerShown: false,
           }}

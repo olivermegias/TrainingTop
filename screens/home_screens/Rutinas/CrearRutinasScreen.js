@@ -282,7 +282,6 @@ export default function CrearRutinaScreen() {
           peso: ejercicioData.peso,
         })),
       }));
-      console.log("👤 Usuario ID que se enviará:", user.uid);
       const nuevaRutina = {
         nombre: nombre.trim(),
         descripcion: descripcion.trim(),
@@ -298,11 +297,6 @@ export default function CrearRutinaScreen() {
 
       try {
         rutinaCreada = await crearRutina(nuevaRutina);
-        console.log(
-          "✅ Rutina creada y asignada automáticamente:",
-          rutinaCreada
-        );
-        // Ya no necesitas la llamada a asignarRutina
       } catch (error) {
         console.error("❌ Error al crear la rutina:", error);
       }
@@ -346,8 +340,6 @@ export default function CrearRutinaScreen() {
       </SafeAreaView>
     );
   }
-
-  console.log('Crear', dias[currentDiaIndex])
 
   return (
     <SafeAreaView style={styles.safeArea}>

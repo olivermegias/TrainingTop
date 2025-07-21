@@ -52,12 +52,6 @@ export default function RootNavigator() {
     checkToken();
   }, []);
 
-  // Para depuración
-  console.log("Estado de navegación:", { 
-    user: user ? "Existe usuario" : "No hay usuario", 
-    isCheckingToken, 
-    loading 
-  });
 
   // Mostrar un loader mientras se verifica el token o se está cargando
   if (isCheckingToken || loading) {

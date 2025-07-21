@@ -1,9 +1,9 @@
 import axios from "axios";
 import { Platform } from "react-native";
 import { Alert } from "react-native";
+import Constants from "expo-constants";
 
-const API_URL_ANDROID = "http://192.168.1.21:5005";
-const API_URL_WEB = "http://localhost:5005";
+const { API_URL_ANDROID, API_URL_WEB } = Constants.expoConfig.extra;
 
 const API_URL = Platform.OS === "android" ? API_URL_ANDROID : API_URL_WEB;
 
@@ -114,7 +114,6 @@ export const deleteRutina = async (rutinaId) => {
 
 export const actualizarRutina = async (rutinaId, datosRutina) => {
   try {
-    console.log(datosRutina.dias.ejercicios);
     const response = await axios.put(
       `${API_URL}/rutinas/${rutinaId}`,
       datosRutina

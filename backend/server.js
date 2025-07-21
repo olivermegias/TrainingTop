@@ -3,6 +3,7 @@ const connectDB = require("./database.js");
 const ejerciciosRoutes = require("./routes/ejercicios.js");
 const usuariosRoutes = require("./routes/usuarios.js");
 const rutinasRoutes = require("./routes/rutinas.js");
+const entrenamientosRoutes = require("./routes/entrenamientos.js");
 const cors = require("cors");
 const dotenv = require("dotenv");
 
@@ -11,7 +12,6 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5005;
 
-// Conectar a la base de datos
 connectDB();
 
 // Middleware para manejar CORS (si es necesario, puedes personalizarlo)
@@ -30,6 +30,7 @@ app.use(express.json({ charset: 'utf-8' }));
 app.use("/ejercicios", ejerciciosRoutes);
 app.use("/usuarios", usuariosRoutes);
 app.use("/rutinas", rutinasRoutes);
+app.use("/entrenamientos", entrenamientosRoutes);
 
 // Iniciar el servidor
 app.listen(PORT, "0.0.0.0", () => {

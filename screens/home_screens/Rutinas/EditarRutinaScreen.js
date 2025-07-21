@@ -143,32 +143,12 @@ export default function EditarRutinaScreen() {
 
   // Función para mapear ejercicios con sus datos completos
   const mapearEjerciciosCompletos = (diasOriginal, ejerciciosCompletos) => {
-    console.log("=== INICIO MAPEO EJERCICIOS ===");
-    console.log("Días originales:", diasOriginal);
-    console.log("Ejercicios completos:", ejerciciosCompletos);
 
     return diasOriginal.map((dia, diaIndex) => {
-      console.log(`--- Procesando día ${diaIndex}: ${dia.nombre} ---`);
-      console.log("Ejercicios del día:", dia.ejercicios);
 
       const ejerciciosMapeados = dia.ejercicios.map((ej, ejIndex) => {
-        console.log(`Ejercicio ${ejIndex}:`, ej);
-        console.log("Tipo de ej.ejercicio:", typeof ej.ejercicio);
-        console.log("ej.ejercicio:", ej.ejercicio);
-
-        // Debugging más detallado
-        if (typeof ej.ejercicio === "string") {
-          console.log("Es string, ID:", ej.ejercicio);
-        } else if (ej.ejercicio && ej.ejercicio.id) {
-          console.log("Es objeto, ID:", ej.ejercicio.id);
-        } else {
-          console.log("Estructura no reconocida");
-        }
 
         const id = ej.ejercicio;
-        console.log("ID extraído:", id);
-
-        console.log(ejerciciosCompletos);
         if (!Array.isArray(ejerciciosCompletos)) {
           console.error(
             "ERROR: ejerciciosCompletos no es un array:",
@@ -177,25 +157,15 @@ export default function EditarRutinaScreen() {
           return diasOriginal; // o lanza error, o maneja como quieras
         }
         const ejercicioCompleto = ejerciciosCompletos.find((e) => e.id === id);
-        console.log("Ejercicio encontrado:", ejercicioCompleto ? "SÍ" : "NO");
-
-        if (ejercicioCompleto) {
-          console.log(
-            "Datos del ejercicio encontrado:",
-            ejercicioCompleto.nombre
-          );
-        }
 
         const resultado = {
           ...ej,
           ejercicio: ejercicioCompleto || ej.ejercicio,
         };
 
-        console.log("Resultado final para este ejercicio:", resultado);
         return resultado;
       });
 
-      console.log(`--- Fin procesamiento día ${diaIndex} ---`);
       return {
         ...dia,
         ejercicios: ejerciciosMapeados,
@@ -219,42 +189,25 @@ export default function EditarRutinaScreen() {
 
     const cargarDatos = async () => {
       try {
-        console.log("=== INICIO CARGA DE DATOS ===");
-
         // Cargar todos los ejercicios disponibles
         const { ejercicios: ejerciciosDisponibles } = await fetchEjercicios();
-        console.log(
-          "Ejercicios disponibles cargados:",
-          ejerciciosDisponibles.length
-        );
         setEjercicios(ejerciciosDisponibles);
-
-        // Si hay ejercicios en la rutina, cargar sus datos completos
-
         try {
-          console.log("Cargando detalles de ejercicios...");
           const { ejerciciosData: ejerciciosRutina } =
             await fetchEjerciciosDetails(rutinaOriginal);
-          console.log("Ejercicios de rutina cargados:", ejerciciosRutina);
 
           // Mapear los días con los ejercicios completos
-          console.log("Iniciando mapeo de ejercicios...");
           const diasConEjerciciosCompletos = mapearEjerciciosCompletos(
             rutinaOriginal.dias || [{ nombre: "Día 1", ejercicios: [] }],
             Object.values(ejerciciosRutina)
           );
 
-          console.log(
-            "Días con ejercicios completos:",
-            diasConEjerciciosCompletos
-          );
           setDias(diasConEjerciciosCompletos);
         } catch (error) {
           console.error("Error al cargar ejercicios de la rutina:", error);
         }
 
         setLoadingEjercicios(false);
-        console.log("=== FIN CARGA DE DATOS ===");
       } catch (error) {
         console.error("Error al cargar datos:", error);
         if (Platform.OS === "web") {
@@ -396,8 +349,6 @@ export default function EditarRutinaScreen() {
               id: ejercicio.ejercicio, // Asegurarse de que el ID esté presente
             };
           }
-          // Si ya es un ID string, mantenerlo
-          console.log("uwdhwudhuwdh", ejercicio);
           return ejercicio;
         }),
       }));
