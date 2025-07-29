@@ -11,8 +11,12 @@ import {
 } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import { fetchRutinasPublicas, fetchRutinasUsuario } from "../../../services/rutinasPeticiones";
-import RutinaItem  from "./components/RutinaItem";
+import {
+  fetchRutinasPublicas,
+  fetchRutinasUsuario,
+} from "../../../services/rutinasPeticiones";
+import { fetchRutinaActiva } from "../../../services/usuarioPeticiones";
+import RutinaItem from "./components/RutinaItem";
 import { AuthContext } from "../../../context/AuthContext";
 
 export default function RutinaScreen() {
@@ -20,27 +24,48 @@ export default function RutinaScreen() {
   const [rutinasPublicas, setRutinasPublicas] = useState([]);
   const [loadingUsuario, setLoadingUsuario] = useState(true);
   const [loadingPublicas, setLoadingPublicas] = useState(true);
+  const [rutinaActiva, setRutinaActiva] = useState(null);
   const navigation = useNavigation();
 
   const { user } = useContext(AuthContext);
 
   useEffect(() => {
     const obtenerDatos = async () => {
-      const { rutinasUsuario, loadingUsuario } = await fetchRutinasUsuario(user.uid);
-      const { rutinasPublicasUnicas, loadingPublicas } = await fetchRutinasPublicas();
+      const { rutinasUsuario, loadingUsuario } = await fetchRutinasUsuario(
+        user.uid
+      );
+      const { rutinasPublicasUnicas, loadingPublicas } =
+        await fetchRutinasPublicas();
       setRutinasUsuario(rutinasUsuario);
       setLoadingUsuario(loadingUsuario);
       setRutinasPublicas(rutinasPublicasUnicas);
-      setLoadingPublicas(loadingPublicas); 
+      setLoadingPublicas(loadingPublicas);
     };
     obtenerDatos();
+  }, []);
+
+  useEffect(() => {
+    const cargarRutinaActiva = async () => {
+      console.log(resultado);
+      if (resultado.rutinaActiva) {
+        setRutinaActiva(resultado.rutinaActiva._id);
+      }
+    };
+
+    cargarRutinaActiva();
   }, []);
 
   useFocusEffect(
     useCallback(() => {
       const obtenerDatosUsuario = async () => {
         try {
-          const { rutinasUsuario, loadingUsuario } = await fetchRutinasUsuario(user.uid);
+          const { rutinasUsuario, loadingUsuario } = await fetchRutinasUsuario(
+            user.uid
+          );
+          const resultado = await fetchRutinaActiva(user.uid);
+          if (resultado.success && resultado.rutinaActiva) {
+            setRutinaActiva(resultado.rutinaActiva._id);
+          }
           setRutinasUsuario(rutinasUsuario);
           setLoadingUsuario(loadingUsuario);
         } catch (error) {
@@ -91,14 +116,11 @@ export default function RutinaScreen() {
           ) : (
             rutinasUsuario.map((item) => (
               <View key={item._id.toString()}>
-                <RutinaItem item={item} />
+                <RutinaItem item={item} rutinaActiva={rutinaActiva} />
               </View>
             ))
           )}
         </View>
-
-        {/* Separador */}
-        <View style={styles.separator} />
 
         {/* Sección de Rutinas Públicas */}
         <View style={styles.sectionContainer}>
@@ -157,7 +179,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   sectionTitle: {
-    fontSize: 22,
+    fontSize: 25,
     fontWeight: "bold",
     color: "#6200EE",
   },

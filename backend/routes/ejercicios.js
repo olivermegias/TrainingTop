@@ -220,7 +220,16 @@ router.get("/porIds", async (req, res) => {
 // Ruta para obtener un ejercicio por ID
 router.get("/:id", async (req, res) => {
   try {
-    const ejercicio = await Ejercicio.findOne({ id: req.params.id });
+    const { id } = req.params;
+    let ejercicio;
+
+    // Primero intentar buscar por el campo 'id' personalizado
+    ejercicio = await Ejercicio.findOne({ id: id });
+
+    // Si no se encuentra y el parámetro es un ObjectId válido, buscar por _id
+    if (!ejercicio && id.match(/^[0-9a-fA-F]{24}$/)) {
+      ejercicio = await Ejercicio.findById(id);
+    }
 
     if (!ejercicio) {
       return res.status(404).json({ error: "Ejercicio no encontrado." });

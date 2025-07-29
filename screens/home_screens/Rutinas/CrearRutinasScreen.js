@@ -274,20 +274,37 @@ export default function CrearRutinaScreen() {
     try {
       const diasTransformados = dias.map((dia) => ({
         nombre: dia.nombre,
-        ejercicios: dia.ejercicios.map((ejercicioData) => ({
-          ejercicio: ejercicioData.ejercicio.id, // Solo enviamos el ID del ejercicio
-          series: ejercicioData.series,
-          repeticiones: ejercicioData.repeticiones,
-          descanso: ejercicioData.descanso,
-          peso: ejercicioData.peso,
-        })),
+        ejercicios: dia.ejercicios.map((ejercicioData) => {
+          // El ejercicio ya viene como ID directo desde DiaEntrenamientoEditor
+          const ejercicioId = ejercicioData.ejercicio;
+
+          // Validar que el ID existe
+          if (!ejercicioId) {
+            console.error("Ejercicio sin ID:", ejercicioData);
+            throw new Error("Ejercicio sin ID válido");
+          }
+
+          return {
+            ejercicio: ejercicioId,
+            series: ejercicioData.series || 1,
+            repeticiones: ejercicioData.repeticiones || 1,
+            descanso: ejercicioData.descanso || 60,
+            peso: ejercicioData.peso || 0,
+          };
+        }),
       }));
+
+      console.log(
+        "Días transformados:",
+        JSON.stringify(diasTransformados, null, 2)
+      );
+
       const nuevaRutina = {
         nombre: nombre.trim(),
         descripcion: descripcion.trim(),
         nivel,
         publica: esPublica,
-        dias: diasTransformados, // Usar los días transformados
+        dias: diasTransformados,
         usuarioId: user.uid,
         fechaCreacion: new Date(),
         fechaActualizacion: new Date(),
@@ -312,9 +329,7 @@ export default function CrearRutinaScreen() {
           {
             text: "OK",
             onPress: () =>
-              navigation.navigate("DetalleRutina", {
-                rutina: rutinaCreada,
-              }),
+              navigation.goBack()
           },
         ]);
       }
@@ -462,7 +477,7 @@ export default function CrearRutinaScreen() {
         )}
 
         {/* CONTENIDO SCROLLABLE PRINCIPAL */}
-        <ScrollView 
+        <ScrollView
           style={styles.scrollableContent}
           contentContainerStyle={styles.scrollableContentContainer}
           showsVerticalScrollIndicator={false}
@@ -515,7 +530,7 @@ export default function CrearRutinaScreen() {
                 </View>
               </View>
 
-              <View style={styles.inputContainer}>
+              {/* <View style={styles.inputContainer}>
                 <TouchableOpacity
                   style={styles.publicToggle}
                   onPress={handlePublicaChange}
@@ -553,7 +568,7 @@ export default function CrearRutinaScreen() {
                     </View>
                   </View>
                 </TouchableOpacity>
-              </View>
+              </View> */}
 
               {/* Botón para ir a entrenamientos */}
               <TouchableOpacity
@@ -567,7 +582,6 @@ export default function CrearRutinaScreen() {
               </TouchableOpacity>
             </View>
           ) : (
-            // SECCIÓN B: Gestión de días de entrenamiento
             <View style={styles.diaEditorWrapper}>
               <View style={styles.diaNameContainer}>
                 <Text style={styles.inputLabel}>Nombre del día</Text>
@@ -584,7 +598,7 @@ export default function CrearRutinaScreen() {
               {/* Editor del día actual - SIN ScrollView interno */}
               <View style={styles.diaEditorContainer}>
                 <DiaEntrenamientoEditor
-                  key={`dia-${currentDiaIndex}`} // Key para forzar re-render
+                  key={`dia-${currentDiaIndex}`}
                   dia={dias[currentDiaIndex]}
                   ejerciciosDisponibles={ejercicios}
                   onDiaChange={(nuevoDia) =>
@@ -885,7 +899,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginLeft: 10,
   },
-  // Toast styles
   toastContainer: {
     position: "absolute",
     top: 60,

@@ -65,6 +65,10 @@ export default function EjecutarRutinaScreen() {
   const totalSeries = ejercicioActualData?.series || 0;
   const totalEjercicios = diaEntrenamiento?.ejercicios.length || 0;
 
+  const [modalSeleccionarDia, setModalSeleccionarDia] = useState(false);
+  const [diaRecomendado, setDiaRecomendado] = useState(0);
+  const [cargandoProgreso, setCargandoProgreso] = useState(true);
+
   useEffect(() => {
     const inicializarDatos = () => {
       const datos = {};
@@ -82,6 +86,7 @@ export default function EjecutarRutinaScreen() {
         });
       });
       setEntrenamientoData(datos);
+      console.log(rutina);
     };
 
     inicializarDatos();
@@ -90,25 +95,53 @@ export default function EjecutarRutinaScreen() {
   useEffect(() => {
     const cargarEjercicio = async () => {
       try {
-        if (ejercicioActualData?.ejercicio) {
+        // Añadir logs para debug
+        console.log("Día actual:", diaActual);
+        console.log("Ejercicio actual index:", ejercicioActual);
+        console.log("Día entrenamiento:", diaEntrenamiento);
+        console.log("Ejercicio actual data:", ejercicioActualData);
+        console.log(
+          "ID del ejercicio a cargar:",
+          ejercicioActualData?.ejercicio
+        );
+
+        if (ejercicioActualData?.ejercicio && diaEntrenamiento) {
           const detalle = await fetchEjercicioPorId(
             ejercicioActualData.ejercicio
           );
           setEjercicioDetalle(detalle);
           setImagenActual(0);
 
-          // Iniciar cronómetro del ejercicio si el entrenamiento ya comenzó
           if (entrenamientoIniciado && !tiempoInicioEjercicio) {
             setTiempoInicioEjercicio(new Date());
           }
         }
       } catch (error) {
         console.error("Error al cargar el ejercicio:", error);
+        if (diaEntrenamiento && ejercicioActualData) {
+          mostrarToast("Error al cargar el ejercicio", "error");
+        }
       }
     };
 
-    cargarEjercicio();
-  }, [ejercicioActualData?.ejercicio, entrenamientoIniciado]);
+    if (diaEntrenamiento && ejercicioActualData) {
+      cargarEjercicio();
+    }
+  }, [ejercicioActualData?.ejercicio, entrenamientoIniciado, diaActual]);
+
+  useEffect(() => {
+    const cargarProgreso = async () => {
+      setCargandoProgreso(true);
+      const resultado = await fetchProgresoRutina(user.uid, rutina._id);
+      if (resultado.success) {
+        setDiaRecomendado(resultado.diaActual);
+        setDiaActual(resultado.diaActual);
+      }
+      setCargandoProgreso(false);
+    };
+
+    cargarProgreso();
+  }, [user.uid, rutina._id]);
 
   useEffect(() => {
     let interval;
@@ -159,6 +192,47 @@ export default function EjecutarRutinaScreen() {
     return `${mins.toString().padStart(2, "0")}:${secs
       .toString()
       .padStart(2, "0")}`;
+  };
+
+  const seleccionarDia = (diaIndex) => {
+    // Log para ver la estructura
+    console.log("Cambiando a día:", diaIndex);
+    console.log("Datos del día seleccionado:", rutina.dias[diaIndex]);
+    console.log("Ejercicios del día:", rutina.dias[diaIndex].ejercicios);
+
+    setDiaActual(diaIndex);
+    setModalSeleccionarDia(false);
+
+    // Reinicializar estados
+    setEjercicioActual(0);
+    setSerieActual(0);
+    setEjercicioDetalle(null);
+    setMostrarInstrucciones(false);
+    setImagenActual(0);
+    setValoracionesEjercicios({});
+    setTiemposEjercicios({});
+    setTiempoInicioEjercicio(null);
+
+    // Forzar la recarga del ejercicio después de cambiar el día
+    setTimeout(() => {
+      const nuevoDia = rutina.dias[diaIndex];
+      const primerEjercicio = nuevoDia?.ejercicios[0];
+      console.log("Primer ejercicio del nuevo día:", primerEjercicio);
+
+      if (primerEjercicio?.ejercicio) {
+        // Cargar manualmente el primer ejercicio
+        fetchEjercicioPorId(primerEjercicio.ejercicio)
+          .then((detalle) => {
+            setEjercicioDetalle(detalle);
+            console.log("Ejercicio cargado manualmente:", detalle);
+          })
+          .catch((error) => {
+            console.error("Error manual al cargar ejercicio:", error);
+          });
+      }
+    }, 100);
+
+    mostrarToast(`${rutina.dias[diaIndex].nombre} seleccionado`, "info");
   };
 
   const abrirModalSerie = () => {
@@ -466,12 +540,26 @@ export default function EjecutarRutinaScreen() {
           <View style={styles.inicioContainer}>
             <Ionicons name="fitness" size={80} color="#6200EE" />
             <Text style={styles.inicioTitle}>¿Listo para entrenar?</Text>
-            <Text style={styles.inicioSubtitle}>
-              {rutina.nombre} - Día {diaActual + 1}
-            </Text>
-            <Text style={styles.inicioInfo}>
-              {totalEjercicios} ejercicios programados
-            </Text>
+            <Text style={styles.inicioSubtitle}>{rutina.nombre}</Text>
+
+            {/* Información del día actual */}
+            <View style={styles.diaInfoContainer}>
+              <Text style={styles.diaActualText}>
+                {diaEntrenamiento?.nombre || `Día ${diaActual + 1}`}
+              </Text>
+              <Text style={styles.ejerciciosInfo}>
+                {totalEjercicios} ejercicios programados
+              </Text>
+            </View>
+
+            {/* Botón para cambiar día */}
+            <TouchableOpacity
+              style={styles.cambiarDiaButton}
+              onPress={() => setModalSeleccionarDia(true)}
+            >
+              <Ionicons name="calendar-outline" size={20} color="#6200EE" />
+              <Text style={styles.cambiarDiaText}>Elegir otro día</Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.iniciarButton}
@@ -1014,6 +1102,63 @@ export default function EjecutarRutinaScreen() {
                 <Text style={styles.confirmButtonText}>Siguiente</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+      {/* Modal para seleccionar día */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalSeleccionarDia}
+        onRequestClose={() => setModalSeleccionarDia(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>
+              Seleccionar Día de Entrenamiento
+            </Text>
+
+            <ScrollView style={styles.diasLista}>
+              {rutina.dias.map((dia, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.diaItem,
+                    index === diaActual && styles.diaItemActual,
+                    index === diaRecomendado && styles.diaItemRecomendado,
+                  ]}
+                  onPress={() => seleccionarDia(index)}
+                >
+                  <View style={styles.diaItemContent}>
+                    <Text style={styles.diaItemNombre}>
+                      {dia.nombre || `Día ${index + 1}`}
+                    </Text>
+                    <Text style={styles.diaItemInfo}>
+                      {dia.ejercicios.length} ejercicios
+                    </Text>
+                    {index === diaRecomendado && (
+                      <Text style={styles.diaRecomendadoLabel}>
+                        Día recomendado
+                      </Text>
+                    )}
+                  </View>
+                  {index === diaActual && (
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={24}
+                      color="#6200EE"
+                    />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setModalSeleccionarDia(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancelar</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -1613,5 +1758,77 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     marginLeft: 6,
+  },
+  diaInfoContainer: {
+    backgroundColor: "#F5F5F5",
+    padding: 15,
+    borderRadius: 12,
+    marginVertical: 20,
+    alignItems: "center",
+  },
+  diaActualText: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#6200EE",
+    marginBottom: 5,
+  },
+  ejerciciosInfo: {
+    fontSize: 16,
+    color: "#666",
+  },
+  cambiarDiaButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EDE7F6",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginBottom: 20,
+  },
+  cambiarDiaText: {
+    marginLeft: 8,
+    color: "#6200EE",
+    fontWeight: "600",
+  },
+  diasLista: {
+    maxHeight: 300,
+    marginVertical: 20,
+  },
+  diaItem: {
+    padding: 15,
+    backgroundColor: "#F5F5F5",
+    borderRadius: 8,
+    marginBottom: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  diaItemActual: {
+    backgroundColor: "#EDE7F6",
+    borderWidth: 2,
+    borderColor: "#6200EE",
+  },
+  diaItemRecomendado: {
+    borderWidth: 1,
+    borderColor: "#4CAF50",
+  },
+  diaItemContent: {
+    flex: 1,
+  },
+  diaItemNombre: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#212121",
+  },
+  diaItemInfo: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 4,
+  },
+  diaRecomendadoLabel: {
+    fontSize: 12,
+    color: "#4CAF50",
+    fontWeight: "600",
+    marginTop: 4,
   },
 });

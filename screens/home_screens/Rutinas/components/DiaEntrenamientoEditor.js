@@ -482,6 +482,7 @@ export default function DiaEntrenamientoEditor({
               "hombros",
               "glúteos",
               "trampas",
+              "pecho",
             ]}
             toggleFilter={toggleFilter}
             hasActiveTempFilters={hasActiveTempFilters}

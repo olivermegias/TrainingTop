@@ -20,14 +20,14 @@ router.post("/", async (req, res) => {
       duracion,
       fechaInicio,
       fechaFin,
-      completado
+      completado,
     } = req.body;
 
     // Validaciones básicas
     if (!usuarioId || !rutinaId || !ejercicios || !Array.isArray(ejercicios)) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: "Faltan datos obligatorios",
-        datosRecibidos: { usuarioId, rutinaId, tieneEjercicios: !!ejercicios }
+        datosRecibidos: { usuarioId, rutinaId, tieneEjercicios: !!ejercicios },
       });
     }
 
@@ -51,17 +51,17 @@ router.post("/", async (req, res) => {
       rutinaId,
       nombreRutina,
       diaEntrenamiento,
-      ejercicios: ejercicios.map(ej => ({
+      ejercicios: ejercicios.map((ej) => ({
         ejercicioId: ej.ejercicioId,
         series: ej.series || [],
         seriesSaltadas: ej.seriesSaltadas || 0,
         valoracion: ej.valoracion || null,
-        duracion: ej.duracion || 0
+        duracion: ej.duracion || 0,
       })),
       duracion,
       fechaInicio: new Date(fechaInicio),
       fechaFin: new Date(fechaFin),
-      completado: completado !== false
+      completado: completado !== false,
     });
 
     console.log("💾 Guardando entrenamiento...");
@@ -72,28 +72,45 @@ router.post("/", async (req, res) => {
     if (!usuario.estadisticas) {
       usuario.estadisticas = {
         entrenamientosCompletados: 0,
-        tiempoTotalEntrenado: 0
+        tiempoTotalEntrenado: 0,
       };
     }
-    
+
     usuario.estadisticas.entrenamientosCompletados += 1;
     usuario.estadisticas.tiempoTotalEntrenado += duracion;
     usuario.estadisticas.ultimoEntrenamiento = new Date();
-    
+
+    let progreso = usuario.progresoRutinas.find(
+      (p) => p.rutinaId.toString() === rutinaId
+    );
+
+    if (progreso) {
+      // Actualizar día actual al siguiente
+      const totalDias = rutina.dias.length;
+      progreso.diaActual = (diaEntrenamiento + 1) % totalDias;
+      progreso.ultimaEjecucion = new Date();
+    } else {
+      // Crear nuevo progreso
+      usuario.progresoRutinas.push({
+        rutinaId,
+        diaActual: (diaEntrenamiento + 1) % rutina.dias.length,
+        ultimaEjecucion: new Date(),
+      });
+    }
+
     await usuario.save();
     console.log("✅ Estadísticas del usuario actualizadas");
 
     res.status(201).json({
       message: "Entrenamiento guardado correctamente",
       entrenamiento: entrenamientoGuardado,
-      estadisticasActualizadas: usuario.estadisticas
+      estadisticasActualizadas: usuario.estadisticas,
     });
-
   } catch (error) {
     console.error("❌ Error al guardar entrenamiento:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: "Error al guardar el entrenamiento",
-      detalles: error.message 
+      detalles: error.message,
     });
   }
 });
@@ -104,12 +121,11 @@ router.get("/usuario/:usuarioId", async (req, res) => {
     const { usuarioId } = req.params;
     const { limite = 10, pagina = 1 } = req.query;
 
-    const entrenamientos = await Entrenamiento
-      .find({ usuarioId })
+    const entrenamientos = await Entrenamiento.find({ usuarioId })
       .sort({ fechaInicio: -1 })
       .limit(limite * 1)
       .skip((pagina - 1) * limite)
-      .populate('rutinaId', 'nombre nivel');
+      .populate("rutinaId", "nombre nivel");
 
     const total = await Entrenamiento.countDocuments({ usuarioId });
 
@@ -118,10 +134,9 @@ router.get("/usuario/:usuarioId", async (req, res) => {
       paginacion: {
         total,
         pagina: parseInt(pagina),
-        totalPaginas: Math.ceil(total / limite)
-      }
+        totalPaginas: Math.ceil(total / limite),
+      },
     });
-
   } catch (error) {
     console.error("Error al obtener entrenamientos:", error);
     res.status(500).json({ error: "Error al obtener entrenamientos" });
@@ -146,7 +161,7 @@ router.get("/estadisticas/:usuarioId", async (req, res) => {
 
     const entrenamientos = await Entrenamiento.find({
       usuarioId,
-      fechaInicio: { $gte: fechaInicio }
+      fechaInicio: { $gte: fechaInicio },
     });
 
     // Calcular estadísticas
@@ -156,18 +171,18 @@ router.get("/estadisticas/:usuarioId", async (req, res) => {
       promedioSatisfaccion: 0,
       promedioEsfuerzo: 0,
       ejerciciosCompletados: 0,
-      seriesCompletadas: 0
+      seriesCompletadas: 0,
     };
 
     let totalValoraciones = 0;
     let sumaSatisfaccion = 0;
     let sumaEsfuerzo = 0;
 
-    entrenamientos.forEach(entrenamiento => {
-      entrenamiento.ejercicios.forEach(ejercicio => {
+    entrenamientos.forEach((entrenamiento) => {
+      entrenamiento.ejercicios.forEach((ejercicio) => {
         estadisticas.ejerciciosCompletados++;
         estadisticas.seriesCompletadas += ejercicio.series.length;
-        
+
         if (ejercicio.valoracion) {
           totalValoraciones++;
           sumaSatisfaccion += ejercicio.valoracion.satisfaccion;
@@ -177,12 +192,15 @@ router.get("/estadisticas/:usuarioId", async (req, res) => {
     });
 
     if (totalValoraciones > 0) {
-      estadisticas.promedioSatisfaccion = (sumaSatisfaccion / totalValoraciones).toFixed(1);
-      estadisticas.promedioEsfuerzo = (sumaEsfuerzo / totalValoraciones).toFixed(1);
+      estadisticas.promedioSatisfaccion = (
+        sumaSatisfaccion / totalValoraciones
+      ).toFixed(1);
+      estadisticas.promedioEsfuerzo = (
+        sumaEsfuerzo / totalValoraciones
+      ).toFixed(1);
     }
 
     res.json({ estadisticas, periodo });
-
   } catch (error) {
     console.error("Error al obtener estadísticas:", error);
     res.status(500).json({ error: "Error al obtener estadísticas" });
@@ -192,16 +210,15 @@ router.get("/estadisticas/:usuarioId", async (req, res) => {
 // 📌 Obtener detalles de un entrenamiento específico
 router.get("/:id", async (req, res) => {
   try {
-    const entrenamiento = await Entrenamiento
-      .findById(req.params.id)
-      .populate('rutinaId');
+    const entrenamiento = await Entrenamiento.findById(req.params.id).populate(
+      "rutinaId"
+    );
 
     if (!entrenamiento) {
       return res.status(404).json({ error: "Entrenamiento no encontrado" });
     }
 
     res.json(entrenamiento);
-
   } catch (error) {
     console.error("Error al obtener entrenamiento:", error);
     res.status(500).json({ error: "Error al obtener entrenamiento" });

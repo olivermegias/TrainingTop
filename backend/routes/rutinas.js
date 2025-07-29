@@ -53,7 +53,7 @@ router.post("/", async (req, res) => {
     console.log("🔍 Buscando usuario en BD..."); // ← NUEVO LOG
     const usuario = await Usuario.findOne({ uid: usuarioId });
     console.log("👤 Usuario encontrado:", usuario ? "SÍ" : "NO"); // ← NUEVO LOG
-    
+
     if (!usuario) {
       console.log("❌ Usuario no encontrado con uid:", usuarioId); // ← NUEVO LOG
       return res.status(404).json({ error: "Usuario no encontrado" });
@@ -76,10 +76,9 @@ router.post("/", async (req, res) => {
       rutina: rutinaGuardada,
       usuarioActualizado: {
         id: usuario._id,
-        rutinas: usuario.rutinas
-      }
+        rutinas: usuario.rutinas,
+      },
     });
-
   } catch (error) {
     console.error("❌ Error al crear rutina:", error);
     res.status(500).json({ error: "Error al guardar la rutina" });
@@ -171,15 +170,31 @@ router.post("/asignar", async (req, res) => {
       usuario.rutinas = [];
     }
 
-    // Evitar duplicados
-    if (!usuario.rutinas.includes(rutinaId)) {
-      usuario.rutinas.push(rutinaId);
+    // Crear una nueva rutina privada basada en la rutina pública
+    const nuevaRutina = new Rutina({
+      nombre: rutina.nombre,
+      descripcion: rutina.descripcion,
+      ejercicios: rutina.ejercicios,
+      creador: usuarioId,
+      publica: false,
+      // Copiar otros campos necesarios de la rutina original
+      ...rutina.toObject(),
+      _id: undefined, // Eliminar el _id para que se genere uno nuevo
+      publica: false,
+    });
+
+    const rutinaGuardada = await nuevaRutina.save();
+
+    // Asignar la nueva rutina privada al usuario
+    if (!usuario.rutinas.includes(rutinaGuardada._id)) {
+      usuario.rutinas.push(rutinaGuardada._id);
       await usuario.save();
     }
 
     res.json({
       message: "Rutina asignada correctamente",
       rutinas: usuario.rutinas,
+      nuevaRutinaId: rutinaGuardada._id,
     });
   } catch (error) {
     res.status(500).json({ error: "Error al asignar la rutina" });
