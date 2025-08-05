@@ -7,7 +7,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
-  StatusBar,
   Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -178,7 +177,6 @@ export default function EjerciciosScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F5F5F5" />
       <View style={styles.container}>
         {/* Header con título y búsqueda */}
         <HeaderEjercicios

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useCallback, useContext } from "react";
 import {
   View,
   Text,
@@ -6,17 +6,20 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
-  StatusBar,
   ActivityIndicator,
   RefreshControl,
   Dimensions,
   Platform,
+  StatusBar,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { AuthContext } from "../../context/AuthContext";
-import { fetchRutinaActiva, fetchUsuarioByUid } from "../../services/usuarioPeticiones";
+import {
+  fetchRutinaActiva,
+  fetchUsuarioByUid,
+} from "../../services/usuarioPeticiones";
 import { fetchEntrenamientosUsuario } from "../../services/entrenamientoPeticiones";
 
 const { width } = Dimensions.get("window");
@@ -30,6 +33,7 @@ export default function HomeScreen() {
   const [rutinaActiva, setRutinaActiva] = useState(null);
   const [progreso, setProgreso] = useState(null);
   const [entrenamientosRecientes, setEntrenamientosRecientes] = useState([]);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [estadisticas, setEstadisticas] = useState({
     entrenamientosTotal: 0,
     tiempoTotal: 0,
@@ -37,14 +41,25 @@ export default function HomeScreen() {
     entrenamientosSemana: 0,
   });
 
-  useEffect(() => {
-    cargarDatos();
-  }, [user]);
+  useFocusEffect(
+    useCallback(() => {
+      cargarDatos(isFirstLoad);
+      StatusBar.setBarStyle("light-content");
+      StatusBar.setBackgroundColor("#6200EE");
 
-  const cargarDatos = async () => {
+      return () => {
+        StatusBar.setBarStyle("dark-content");
+        StatusBar.setBackgroundColor("#F5F5F5");
+      };
+    }, [])
+  );
+
+  const cargarDatos = async (showLoading = true) => {
     try {
-      setLoading(true);
-      
+      if (showLoading) {
+        setLoading(true);
+      }
+
       // Cargar datos del usuario
       const userResult = await fetchUsuarioByUid(user.uid);
       if (userResult) {
@@ -53,14 +68,17 @@ export default function HomeScreen() {
 
       // Cargar rutina activa
       const rutinaResult = await fetchRutinaActiva(user.uid);
-      console.log(rutinaResult)
+      console.log(rutinaResult);
       if (rutinaResult.success) {
         setRutinaActiva(rutinaResult.rutinaActiva);
         setProgreso(rutinaResult.progreso);
       }
 
       // Cargar entrenamientos recientes
-      const entrenamientosResult = await fetchEntrenamientosUsuario(user.uid, 10);
+      const entrenamientosResult = await fetchEntrenamientosUsuario(
+        user.uid,
+        10
+      );
       if (entrenamientosResult.success) {
         setEntrenamientosRecientes(entrenamientosResult.entrenamientos);
         calcularEstadisticas(entrenamientosResult.entrenamientos);
@@ -68,13 +86,16 @@ export default function HomeScreen() {
     } catch (error) {
       console.error("Error al cargar datos:", error);
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+        setIsFirstLoad(false);
+      }
     }
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await cargarDatos();
+    await cargarDatos(isFirstLoad);
     setRefreshing(false);
   };
 
@@ -85,22 +106,25 @@ export default function HomeScreen() {
     const total = entrenamientos.length;
 
     // Tiempo total
-    const tiempoTotal = entrenamientos.reduce((sum, e) => sum + (e.duracion || 0), 0);
+    const tiempoTotal = entrenamientos.reduce(
+      (sum, e) => sum + (e.duracion || 0),
+      0
+    );
 
     // Entrenamientos esta semana
     const haceUnaSemana = new Date();
     haceUnaSemana.setDate(haceUnaSemana.getDate() - 7);
     const entrenamientosSemana = entrenamientos.filter(
-      e => new Date(e.fechaInicio) >= haceUnaSemana
+      (e) => new Date(e.fechaInicio) >= haceUnaSemana
     ).length;
 
     // Calcular racha (días consecutivos)
     let rachaDias = 0;
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
-    
+
     const entrenamientosPorDia = {};
-    entrenamientos.forEach(e => {
+    entrenamientos.forEach((e) => {
       const fecha = new Date(e.fechaInicio);
       fecha.setHours(0, 0, 0, 0);
       entrenamientosPorDia[fecha.toDateString()] = true;
@@ -134,15 +158,15 @@ export default function HomeScreen() {
     const hoy = new Date();
     const ayer = new Date(hoy);
     ayer.setDate(ayer.getDate() - 1);
-    
+
     if (date.toDateString() === hoy.toDateString()) {
       return "Hoy";
     } else if (date.toDateString() === ayer.toDateString()) {
       return "Ayer";
     } else {
-      return date.toLocaleDateString('es-ES', { 
-        day: 'numeric', 
-        month: 'short' 
+      return date.toLocaleDateString("es-ES", {
+        day: "numeric",
+        month: "short",
       });
     }
   };
@@ -174,8 +198,6 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" />
-      
       <ScrollView
         style={styles.container}
         showsVerticalScrollIndicator={false}
@@ -191,9 +213,11 @@ export default function HomeScreen() {
           <View style={styles.header}>
             <View>
               <Text style={styles.saludo}>{getSaludo()},</Text>
-              <Text style={styles.nombreUsuario}>{userData?.nombre || "Usuario"}</Text>
+              <Text style={styles.nombreUsuario}>
+                {userData?.nombre || "Usuario"}
+              </Text>
             </View>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.profileButton}
               onPress={() => navigation.navigate("Perfil")}
             >
@@ -212,21 +236,28 @@ export default function HomeScreen() {
                 <Text style={styles.rutinaActivaLabel}>RUTINA ACTIVA</Text>
                 <View style={styles.diaIndicator}>
                   <Text style={styles.diaText}>
-                    Día {(progreso?.diaActual || 0) + 1}/{rutinaActiva.dias.length}
+                    Día {(progreso?.diaActual || 0) + 1}/
+                    {rutinaActiva.dias.length}
                   </Text>
                 </View>
               </View>
-              
-              <Text style={styles.rutinaActivaNombre}>{rutinaActiva.nombre}</Text>
-              
+
+              <Text style={styles.rutinaActivaNombre}>
+                {rutinaActiva.nombre}
+              </Text>
+
               <View style={styles.rutinaActivaFooter}>
                 <View style={styles.rutinaInfo}>
                   <Ionicons name="fitness" size={16} color="#6200EE" />
                   <Text style={styles.rutinaInfoText}>
-                    {rutinaActiva.dias[progreso?.diaActual || 0]?.ejercicios.length} ejercicios
+                    {
+                      rutinaActiva.dias[progreso?.diaActual || 0]?.ejercicios
+                        .length
+                    }{" "}
+                    ejercicios
                   </Text>
                 </View>
-                
+
                 <View style={styles.iniciarButton}>
                   <Text style={styles.iniciarButtonText}>Iniciar</Text>
                   <Ionicons name="play-circle" size={24} color="#6200EE" />
@@ -252,10 +283,15 @@ export default function HomeScreen() {
         {/* Estadísticas */}
         <View style={styles.estadisticasContainer}>
           <Text style={styles.sectionTitle}>Tu Progreso</Text>
-          
+
           <View style={styles.estadisticasGrid}>
             <View style={styles.estatCard}>
-              <View style={[styles.estatIconContainer, { backgroundColor: "#E3F2FD" }]}>
+              <View
+                style={[
+                  styles.estatIconContainer,
+                  { backgroundColor: "#E3F2FD" },
+                ]}
+              >
                 <Ionicons name="flame" size={24} color="#2196F3" />
               </View>
               <Text style={styles.estatValor}>{estadisticas.rachaDias}</Text>
@@ -263,37 +299,58 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.estatCard}>
-              <View style={[styles.estatIconContainer, { backgroundColor: "#E8F5E9" }]}>
+              <View
+                style={[
+                  styles.estatIconContainer,
+                  { backgroundColor: "#E8F5E9" },
+                ]}
+              >
                 <Ionicons name="calendar" size={24} color="#4CAF50" />
               </View>
-              <Text style={styles.estatValor}>{estadisticas.entrenamientosSemana}</Text>
+              <Text style={styles.estatValor}>
+                {estadisticas.entrenamientosSemana}
+              </Text>
               <Text style={styles.estatLabel}>Esta semana</Text>
             </View>
 
             <View style={styles.estatCard}>
-              <View style={[styles.estatIconContainer, { backgroundColor: "#FFF3E0" }]}>
+              <View
+                style={[
+                  styles.estatIconContainer,
+                  { backgroundColor: "#FFF3E0" },
+                ]}
+              >
                 <Ionicons name="time" size={24} color="#FF9800" />
               </View>
-              <Text style={styles.estatValor}>{formatearTiempo(estadisticas.tiempoTotal)}</Text>
+              <Text style={styles.estatValor}>
+                {formatearTiempo(estadisticas.tiempoTotal)}
+              </Text>
               <Text style={styles.estatLabel}>Tiempo total</Text>
             </View>
 
             <View style={styles.estatCard}>
-              <View style={[styles.estatIconContainer, { backgroundColor: "#FCE4EC" }]}>
+              <View
+                style={[
+                  styles.estatIconContainer,
+                  { backgroundColor: "#FCE4EC" },
+                ]}
+              >
                 <Ionicons name="trophy" size={24} color="#E91E63" />
               </View>
-              <Text style={styles.estatValor}>{estadisticas.entrenamientosTotal}</Text>
+              <Text style={styles.estatValor}>
+                {estadisticas.entrenamientosTotal}
+              </Text>
               <Text style={styles.estatLabel}>Entrenamientos</Text>
             </View>
           </View>
         </View>
-        
+
         {/* Historial de entrenamientos */}
         <View style={styles.historialContainer}>
           <View style={styles.historialHeader}>
             <Text style={styles.sectionTitle}>Entrenamientos Recientes</Text>
             <TouchableOpacity
-              //onPress={() => navigation.navigate("HistorialCompleto")}
+            //onPress={() => navigation.navigate("HistorialCompleto")}
             >
               <Text style={styles.verTodoText}>Ver todo</Text>
             </TouchableOpacity>
@@ -320,17 +377,24 @@ export default function HomeScreen() {
                 //onPress={() => navigation.navigate("DetalleEntrenamiento", { entrenamiento })}
               >
                 <View style={styles.entrenamientoFecha}>
-                  <Text style={styles.fechaDia}>{formatearFecha(entrenamiento.fechaInicio)}</Text>
+                  <Text style={styles.fechaDia}>
+                    {formatearFecha(entrenamiento.fechaInicio)}
+                  </Text>
                   <Text style={styles.fechaHora}>
-                    {new Date(entrenamiento.fechaInicio).toLocaleTimeString('es-ES', { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    })}
+                    {new Date(entrenamiento.fechaInicio).toLocaleTimeString(
+                      "es-ES",
+                      {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }
+                    )}
                   </Text>
                 </View>
 
                 <View style={styles.entrenamientoInfo}>
-                  <Text style={styles.entrenamientoNombre}>{entrenamiento.nombreRutina}</Text>
+                  <Text style={styles.entrenamientoNombre}>
+                    {entrenamiento.nombreRutina}
+                  </Text>
                   <Text style={styles.entrenamientoDia}>
                     Día {entrenamiento.diaEntrenamiento + 1}
                   </Text>

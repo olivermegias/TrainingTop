@@ -1,5 +1,4 @@
 import React, { useState, useContext } from "react";
-import { StatusBar } from "expo-status-bar";
 import {
   StyleSheet,
   Text,
@@ -154,7 +153,6 @@ export default function IniciarSesion(props) {
           </View>
         </BlurView>
       </ScrollView>
-      <StatusBar style="auto" />
     </View>
   );
 }

@@ -85,3 +85,64 @@ export const updateRutinaActiva = async (uid, rutinaId) => {
     };
   }
 };
+
+export const actualizarUsuario = async (uid, datosActualizados) => {
+  try {
+    const response = await fetch(`${API_URL}/usuarios/${uid}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(datosActualizados),
+    });
+
+    if (!response.ok) {
+      throw new Error("Error al actualizar usuario");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error actualizando usuario:", error);
+    throw error;
+  }
+};
+
+// Obtener historial de peso
+export const fetchHistorialPeso = async (uid, limite = 30) => {
+  try {
+    const response = await fetch(
+      `${API_URL}/usuarios/${uid}/historial-peso?limite=${limite}`
+    );
+
+    if (!response.ok) {
+      throw new Error("Error al obtener historial");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error obteniendo historial:", error);
+    return [];
+  }
+};
+
+// Registrar nuevo peso
+export const registrarPeso = async (uid, peso) => {
+  try {
+    const response = await fetch(`${API_URL}/usuarios/${uid}/historial-peso`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ peso }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Error al registrar peso");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error registrando peso:", error);
+    throw error;
+  }
+};

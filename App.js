@@ -2,9 +2,8 @@ import React, { useEffect } from "react";
 import "react-native-gesture-handler";
 import RootNavigation from "./navigation/RootNavigation";
 import { AuthProvider } from "./context/AuthContext";
-import { StatusBar } from "expo-status-bar";
 import * as NavigationBar from "expo-navigation-bar";
-import { Platform, StyleSheet } from "react-native";
+import { Platform, StyleSheet, StatusBar } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 export default function App() {
@@ -19,7 +18,11 @@ export default function App() {
     <AuthProvider>
       <SafeAreaProvider>
         <SafeAreaView style={styles.container}>
-          <StatusBar hidden={false} mode={"dark"}/>
+          <StatusBar
+            barStyle="dark-content"
+            backgroundColor="#F5F5F5"
+            translucent={true}
+          />
           <RootNavigation />
         </SafeAreaView>
       </SafeAreaProvider>

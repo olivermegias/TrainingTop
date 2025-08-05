@@ -6,7 +6,6 @@ import {
   StyleSheet, 
   ScrollView, 
   TouchableOpacity,
-  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -34,7 +33,6 @@ export default function DetallesEjercicioScreen({ route, navigation }) {
 
   return (
     <View style={[styles.container]}>
-      <StatusBar barStyle="light-content" />
       <ScrollView 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{

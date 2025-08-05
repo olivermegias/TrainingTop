@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
-  StatusBar,
   ScrollView,
 } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -92,7 +91,6 @@ export default function RutinaScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F5F5F5" />
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         {/* Sección de Rutinas del Usuario */}
         <View style={styles.sectionContainer}>

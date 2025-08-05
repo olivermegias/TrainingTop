@@ -5,6 +5,14 @@ const UsuarioSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   nombre: { type: String, required: true },
   fechaRegistro: { type: Date, default: Date.now },
+  
+  peso: { type: Number, default: null }, // Peso en kg
+  altura: { type: Number, default: null }, // Altura en cm
+  historialPeso: [{
+    peso: { type: Number, required: true },
+    fecha: { type: Date, default: Date.now }
+  }],
+  objetivoPeso: { type: Number, default: null },
   rutinas: [{ type: mongoose.Schema.Types.ObjectId, ref: "Rutina" }],
   rutinaActiva: { type: mongoose.Schema.Types.ObjectId, ref: "Rutina", default: null },
   progresoRutinas: [{

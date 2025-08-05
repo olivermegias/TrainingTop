@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
-  StatusBar,
   TextInput,
   Alert,
   ActivityIndicator,
@@ -358,8 +357,6 @@ export default function CrearRutinaScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F5F5F5" />
-
       {/* Toast component */}
       <Toast
         visible={toast.visible}

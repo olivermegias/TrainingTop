@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { StatusBar } from "expo-status-bar";
 import {
   StyleSheet,
   Text,
@@ -97,7 +96,6 @@ export default function CrearUsuario(props) {
         </BlurView>
       </ScrollView>
 
-      <StatusBar style="auto" />
     </View>
   );
 }

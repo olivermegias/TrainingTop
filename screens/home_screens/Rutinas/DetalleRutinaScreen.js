@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
-  StatusBar,
   ActivityIndicator,
   Alert,
   Platform,
@@ -305,7 +304,6 @@ export default function DetalleRutinaScreen() {
   }
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F5F5F5" />
       <Toast
         visible={toast.visible}
         message={toast.message}

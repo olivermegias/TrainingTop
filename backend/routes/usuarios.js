@@ -1,5 +1,5 @@
 const express = require("express");
-const Usuario = require("../models/Usuarios.js");
+const Usuario = require("../models/Usuarios");
 const admin = require("../firebaseAdmin.js");
 const router = express.Router();
 
@@ -32,15 +32,185 @@ router.post("/registro", async (req, res) => {
 router.get("/:uid", async (req, res) => {
   try {
     const { uid } = req.params;
-    const usuario = await Usuario.findOne({ uid }); // Busca por UID
+    console.log("🔍 Buscando usuario con UID:", uid);
+
+    const usuario = await Usuario.findOne({ uid });
+    console.log("✅ Usuario encontrado:", usuario ? "Sí" : "No");
 
     if (!usuario) {
       return res.status(404).json({ message: "Usuario no encontrado" });
     }
 
-    res.json(usuario); // Devuelve los datos del usuario
+    res.json(usuario);
   } catch (error) {
-    res.status(500).json({ message: "Error en el servidor", error });
+    console.error("❌ Error detallado al obtener usuario:", error);
+    console.error("Stack trace:", error.stack);
+    res.status(500).json({
+      message: "Error en el servidor",
+      error: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    });
+  }
+});
+
+router.put("/:uid", async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const datosActualizar = req.body;
+
+    // Buscar el usuario
+    const usuario = await Usuario.findOne({ uid });
+
+    if (!usuario) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    // Guardar el peso anterior para comparación
+    const pesoAnterior = usuario.peso;
+
+    // Lista de campos que NO deben ser actualizados directamente
+    const camposProtegidos = [
+      "historialPeso",
+      "_id",
+      "uid",
+      "email",
+      "fechaRegistro",
+    ];
+
+    // Actualizar solo los campos permitidos
+    Object.keys(datosActualizar).forEach((key) => {
+      if (
+        !camposProtegidos.includes(key) &&
+        datosActualizar[key] !== undefined
+      ) {
+        usuario[key] = datosActualizar[key];
+      }
+    });
+
+    // Si se actualiza el peso y es diferente al anterior, añadir al historial
+    if (
+      datosActualizar.peso !== undefined &&
+      datosActualizar.peso !== null &&
+      datosActualizar.peso !== pesoAnterior
+    ) {
+      console.log("🏋️ Peso cambió de", pesoAnterior, "a", datosActualizar.peso);
+
+      // Inicializar historialPeso si no existe
+      if (!usuario.historialPeso) {
+        usuario.historialPeso = [];
+      }
+
+      // Añadir al historial
+      usuario.historialPeso.push({
+        peso: parseFloat(datosActualizar.peso),
+        fecha: new Date(),
+      });
+
+      // Limitar el historial a los últimos 100 registros
+      if (usuario.historialPeso.length > 100) {
+        usuario.historialPeso = usuario.historialPeso.slice(-100);
+      }
+    }
+
+    // Guardar cambios
+    const usuarioActualizado = await usuario.save();
+
+    res.json(usuarioActualizado);
+  } catch (error) {
+    console.error("❌ Error al actualizar usuario:", error);
+    res.status(500).json({
+      error: "Error al actualizar usuario",
+      details: error.message,
+    });
+  }
+});
+
+// Obtener historial de peso
+router.get("/:uid/historial-peso", async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const { limite = 30 } = req.query;
+
+    const usuario = await Usuario.findOne({ uid }).select("historialPeso");
+
+    if (!usuario) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    // Devolver los últimos N registros
+    const historial = usuario.historialPeso?.slice(-limite) || [];
+
+    res.json(historial);
+  } catch (error) {
+    console.error("Error al obtener historial de peso:", error);
+    res.status(500).json({ error: "Error al obtener historial" });
+  }
+});
+
+// Añadir un nuevo registro de peso
+router.post("/:uid/historial-peso", async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const { peso } = req.body;
+
+    if (!peso || peso <= 0) {
+      return res.status(400).json({ error: "Peso inválido" });
+    }
+
+    const usuario = await Usuario.findOne({ uid });
+
+    if (!usuario) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    // Añadir al historial
+    usuario.historialPeso.push({
+      peso,
+      fecha: new Date(),
+    });
+
+    // Actualizar peso actual
+    usuario.peso = peso;
+
+    // Limitar el historial
+    if (usuario.historialPeso.length > 100) {
+      usuario.historialPeso = usuario.historialPeso.slice(-100);
+    }
+
+    await usuario.save();
+
+    res.json({
+      message: "Peso registrado correctamente",
+      pesoActual: usuario.peso,
+      historial: usuario.historialPeso.slice(-30), // Devolver últimos 30
+    });
+  } catch (error) {
+    console.error("Error al registrar peso:", error);
+    res.status(500).json({ error: "Error al registrar peso" });
+  }
+});
+
+// Eliminar un registro del historial de peso
+router.delete("/:uid/historial-peso/:registroId", async (req, res) => {
+  try {
+    const { uid, registroId } = req.params;
+
+    const usuario = await Usuario.findOne({ uid });
+
+    if (!usuario) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    usuario.historialPeso = usuario.historialPeso.filter(
+      (registro) => registro._id.toString() !== registroId
+    );
+
+    await usuario.save();
+
+    res.json({ message: "Registro eliminado correctamente" });
+  } catch (error) {
+    console.error("Error al eliminar registro:", error);
+    res.status(500).json({ error: "Error al eliminar registro" });
   }
 });
 
