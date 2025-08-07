@@ -165,7 +165,7 @@ router.get("/", async (req, res) => {
     const ejercicios = await Ejercicio.find();
     res.json(ejercicios);
   } catch (error) {
-    res.status(500).json({ error: "Error al obtener ejercicios." });
+    res.status(500).json({ error: "Error al obtener ejercicios." + error.message });
   }
 });
 

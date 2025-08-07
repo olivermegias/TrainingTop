@@ -3,11 +3,11 @@ import { View, StyleSheet, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 //screens
-import Perfil from "../screens/home_screens/PerfilScreen.js";
-import EjerciciosNavigation from "./(app)/EjerciciosNavigation.js";
-import RutinaNavigation from "./(app)/RutinasNavigation.js";
-import Progreso from "../screens/home_screens/ProgresoScreen.js";
-import HomeNavigation from "./(app)/HomeNavigation.js";
+import Perfil from "../screens/home_screens/PerfilScreen";
+import EjerciciosNavigation from "./(app)/EjerciciosNavigation";
+import RutinaNavigation from "./(app)/RutinasNavigation";
+import Progreso from "../screens/home_screens/ProgresoScreen";
+import HomeNavigation from "./(app)/HomeNavigation";
 import { getFocusedRouteNameFromRoute } from "@react-navigation/native";
 
 const Tab = createBottomTabNavigator();

@@ -1,5 +1,4 @@
 const express = require("express");
-const mongoose = require("mongoose");
 const Entrenamiento = require("../models/Entrenamientos");
 const Usuario = require("../models/Usuarios");
 const Rutina = require("../models/Rutinas");
@@ -222,6 +221,38 @@ router.get("/:id", async (req, res) => {
   } catch (error) {
     console.error("Error al obtener entrenamiento:", error);
     res.status(500).json({ error: "Error al obtener entrenamiento" });
+  }
+});
+
+router.get("/rutinas-entrenadas/:usuarioId", async (req, res) => {
+  try {
+    const { usuarioId } = req.params;
+
+    // Obtener todas las rutinas únicas con las que ha entrenado
+    const rutinasEntrenadas = await Entrenamiento.aggregate([
+      { $match: { usuarioId } },
+      {
+        $group: {
+          _id: "$rutinaId",
+          nombreRutina: { $first: "$nombreRutina" },
+          totalEntrenamientos: { $sum: 1 },
+          ultimoEntrenamiento: { $max: "$fechaInicio" },
+          primerEntrenamiento: { $min: "$fechaInicio" },
+        },
+      },
+      { $sort: { ultimoEntrenamiento: -1 } },
+    ]);
+
+    res.json({
+      success: true,
+      rutinas: rutinasEntrenadas,
+    });
+  } catch (error) {
+    console.error("Error al obtener rutinas entrenadas:", error);
+    res.status(500).json({
+      success: false,
+      error: "Error al obtener rutinas entrenadas",
+    });
   }
 });
 

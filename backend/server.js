@@ -4,6 +4,7 @@ const ejerciciosRoutes = require("./routes/ejercicios.js");
 const usuariosRoutes = require("./routes/usuarios.js");
 const rutinasRoutes = require("./routes/rutinas.js");
 const entrenamientosRoutes = require("./routes/entrenamientos.js");
+const progresoRoutes = require("./routes/progreso.js");
 const cors = require("cors");
 const dotenv = require("dotenv");
 
@@ -31,6 +32,7 @@ app.use("/ejercicios", ejerciciosRoutes);
 app.use("/usuarios", usuariosRoutes);
 app.use("/rutinas", rutinasRoutes);
 app.use("/entrenamientos", entrenamientosRoutes);
+app.use("/progreso", progresoRoutes);
 
 // Iniciar el servidor
 app.listen(PORT, "0.0.0.0", () => {

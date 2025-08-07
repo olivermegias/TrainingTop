@@ -1,11 +1,11 @@
 import React, { useContext, useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
-import AppNavigation from "./AppNavigation.js";
-import AuthNavigation from "./AuthNavigation.js";
-import { AuthContext } from "../context/AuthContext.js";
+import AppNavigation from "./AppNavigation";
+import AuthNavigation from "./AuthNavigation";
+import { AuthContext } from "../context/AuthContext";
 import { View, Image, Text } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { fetchUsuarioByUid } from "../services/usuarioPeticiones.js";
+import { fetchUsuarioByUid } from "../services/usuarioPeticiones";
 
 export default function RootNavigator() {
   const { user, loading, setUser, setLoading } = useContext(AuthContext);

@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Platform, Alert } from "react-native";
+import { Platform } from "react-native";
 import Constants from "expo-constants";
 
 const { API_URL_ANDROID, API_URL_WEB } = Constants.expoConfig.extra;
@@ -125,6 +125,23 @@ export const fetchDetalleEntrenamiento = async (entrenamientoId) => {
   }
 };
 
+export const fetchRutinasEntrenadas = async (usuarioId) => {
+  try {
+    const response = await axios.get(
+      `${API_URL}/entrenamientos/rutinas-entrenadas/${usuarioId}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error al obtener rutinas entrenadas:", error);
+    return {
+      success: false,
+      rutinas: [],
+      error:
+        error.response?.data?.error || "Error al obtener rutinas entrenadas",
+    };
+  }
+};
+
 export const calcularPromedios = (entrenamiento) => {
   if (!entrenamiento.ejercicios || entrenamiento.ejercicios.length === 0) {
     return { satisfaccion: 0, esfuerzo: 0, dificultad: 0 };
@@ -156,7 +173,8 @@ export const calcularPromedios = (entrenamiento) => {
 };
 
 export const getEmojiSatisfaccion = (valor) => {
-  switch (valor) {
+  const valorRedondeado = Math.round(valor);
+  switch (valorRedondeado) {
     case 1:
       return "😞";
     case 2:
@@ -173,7 +191,8 @@ export const getEmojiSatisfaccion = (valor) => {
 };
 
 export const getEmojiEsfuerzo = (valor) => {
-  switch (valor) {
+  const valorRedondeado = Math.round(valor);
+  switch (valorRedondeado) {
     case 1:
       return "😴";
     case 2:
@@ -190,7 +209,8 @@ export const getEmojiEsfuerzo = (valor) => {
 };
 
 export const getColorDificultad = (valor) => {
-  switch (valor) {
+  const valorRedondeado = Math.round(valor);
+  switch (valorRedondeado) {
     case 1:
       return "#4CAF50";
     case 2:
@@ -207,7 +227,8 @@ export const getColorDificultad = (valor) => {
 };
 
 export const getTextoDificultad = (valor) => {
-  switch (valor) {
+  const valorRedondeado = Math.round(valor);
+  switch (valorRedondeado) {
     case 1:
       return "Muy fácil";
     case 2:

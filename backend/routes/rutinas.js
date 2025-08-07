@@ -1,5 +1,4 @@
 const express = require("express");
-const mongoose = require("mongoose");
 const Rutina = require("../models/Rutinas");
 const Usuario = require("../models/Usuarios");
 const router = express.Router();
@@ -90,7 +89,7 @@ router.get("/", async (req, res) => {
     const rutinas = await Rutina.find().populate("dias.ejercicios.ejercicio");
     res.json(rutinas);
   } catch (error) {
-    res.status(500).json({ error: "Error al obtener rutinas" });
+    res.status(500).json({ error: `Error al obtener rutinas: ` + error.message });
   }
 });
 
@@ -102,7 +101,7 @@ router.get("/publicas", async (req, res) => {
     );
     res.json(rutinas);
   } catch (error) {
-    res.status(500).json({ error: "Error al obtener rutinas públicas" });
+    res.status(500).json({ error: "Error al obtener rutinas públicas" + error.message });
   }
 });
 
@@ -126,7 +125,7 @@ router.put("/:id", async (req, res) => {
     );
     res.json(rutinaActualizada);
   } catch (error) {
-    res.status(500).json({ error: "Error al modificar la rutina" });
+    res.status(500).json({ error: `Error al modificar la rutina: ${error.message}` });
   }
 });
 
@@ -146,7 +145,7 @@ router.delete("/:id", async (req, res) => {
     await Rutina.findByIdAndDelete(req.params.id);
     res.json({ message: "Rutina eliminada correctamente" });
   } catch (error) {
-    res.status(500).json({ error: "Error al eliminar la rutina" });
+    res.status(500).json({ error: `Error al eliminar la rutina: ${error.message}` });
   }
 });
 
@@ -177,10 +176,8 @@ router.post("/asignar", async (req, res) => {
       ejercicios: rutina.ejercicios,
       creador: usuarioId,
       publica: false,
-      // Copiar otros campos necesarios de la rutina original
       ...rutina.toObject(),
-      _id: undefined, // Eliminar el _id para que se genere uno nuevo
-      publica: false,
+      _id: undefined,
     });
 
     const rutinaGuardada = await nuevaRutina.save();
@@ -197,7 +194,7 @@ router.post("/asignar", async (req, res) => {
       nuevaRutinaId: rutinaGuardada._id,
     });
   } catch (error) {
-    res.status(500).json({ error: "Error al asignar la rutina" });
+    res.status(500).json({ error: `Error al asignar la rutina ${error.message}` });
   }
 });
 
@@ -221,7 +218,7 @@ router.post("/desasignar", async (req, res) => {
       rutinas: usuario.rutinas,
     });
   } catch (error) {
-    res.status(500).json({ error: "Error al desasignar la rutina" });
+    res.status(500).json({ error: `Error al desasignar la rutina: ${error.message}`  });
   }
 });
 
