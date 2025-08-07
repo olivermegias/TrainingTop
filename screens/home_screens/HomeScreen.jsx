@@ -40,6 +40,7 @@ export default function HomeScreen() {
     rachaDias: 0,
     entrenamientosSemana: 0,
   });
+  const [visibleCount, setVisibleCount] = useState(4);
 
   useFocusEffect(
     useCallback(() => {
@@ -91,6 +92,14 @@ export default function HomeScreen() {
         setIsFirstLoad(false);
       }
     }
+  };
+
+  const mostrarMas = () => {
+    setVisibleCount((prev) => prev + 4);
+  };
+
+  const mostrarMenos = () => {
+    setVisibleCount(4);
   };
 
   const onRefresh = async () => {
@@ -349,11 +358,6 @@ export default function HomeScreen() {
         <View style={styles.historialContainer}>
           <View style={styles.historialHeader}>
             <Text style={styles.sectionTitle}>Entrenamientos Recientes</Text>
-            <TouchableOpacity
-            //onPress={() => navigation.navigate("HistorialCompleto")}
-            >
-              <Text style={styles.verTodoText}>Ver todo</Text>
-            </TouchableOpacity>
           </View>
 
           {entrenamientosRecientes.length === 0 ? (
@@ -370,47 +374,76 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
           ) : (
-            entrenamientosRecientes.slice(0, 5).map((entrenamiento, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.entrenamientoCard}
+            entrenamientosRecientes
+              .slice(0, visibleCount)
+              .map((entrenamiento, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.entrenamientoCard}
                 //onPress={() => navigation.navigate("DetalleEntrenamiento", { entrenamiento })}
-              >
-                <View style={styles.entrenamientoFecha}>
-                  <Text style={styles.fechaDia}>
-                    {formatearFecha(entrenamiento.fechaInicio)}
-                  </Text>
-                  <Text style={styles.fechaHora}>
-                    {new Date(entrenamiento.fechaInicio).toLocaleTimeString(
-                      "es-ES",
-                      {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      }
-                    )}
-                  </Text>
-                </View>
-
-                <View style={styles.entrenamientoInfo}>
-                  <Text style={styles.entrenamientoNombre}>
-                    {entrenamiento.nombreRutina}
-                  </Text>
-                  <Text style={styles.entrenamientoDia}>
-                    Día {entrenamiento.diaEntrenamiento + 1}
-                  </Text>
-                </View>
-
-                <View style={styles.entrenamientoStats}>
-                  <View style={styles.statChip}>
-                    <Ionicons name="time-outline" size={14} color="#666" />
-                    <Text style={styles.statChipText}>
-                      {formatearTiempo(entrenamiento.duracion)}
+                >
+                  <View style={styles.entrenamientoFecha}>
+                    <Text style={styles.fechaDia}>
+                      {formatearFecha(entrenamiento.fechaInicio)}
+                    </Text>
+                    <Text style={styles.fechaHora}>
+                      {new Date(entrenamiento.fechaInicio).toLocaleTimeString(
+                        "es-ES",
+                        {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }
+                      )}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color="#BDBDBD" />
-                </View>
+
+                  <View style={styles.entrenamientoInfo}>
+                    <Text style={styles.entrenamientoNombre}>
+                      {entrenamiento.nombreRutina}
+                    </Text>
+                    <Text style={styles.entrenamientoDia}>
+                      Día {entrenamiento.diaEntrenamiento + 1}
+                    </Text>
+                  </View>
+
+                  <View style={styles.entrenamientoStats}>
+                    <View style={styles.statChip}>
+                      <Ionicons name="time-outline" size={14} color="#666" />
+                      <Text style={styles.statChipText}>
+                        {formatearTiempo(entrenamiento.duracion)}
+                      </Text>
+                    </View>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={20}
+                      color="#BDBDBD"
+                    />
+                  </View>
+                </TouchableOpacity>
+              ))
+          )}
+          {entrenamientosRecientes.length > 4 && (
+            <View style={{ flexDirection: "row", justifyContent: "center", gap: 30 }}>
+              <TouchableOpacity
+                style={{ marginTop: 12, alignSelf: "center" }}
+                onPress={mostrarMas}
+                enable={visibleCount < entrenamientosRecientes.length}
+              >
+                <Text style={[{ color: "#6200EE", fontWeight: "600" }, visibleCount >= entrenamientosRecientes.length && { color: "#BDBDBD" }]}>
+                  Ver más
+                </Text>
               </TouchableOpacity>
-            ))
+              {visibleCount > 4 && (
+                <TouchableOpacity
+                  style={{ marginTop: 12, alignSelf: "center" }}
+                  onPress={mostrarMenos}
+                >
+                  <Text style={{ color: "#6200EE", fontWeight: "600" }}>
+                    Ver menos
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
           )}
         </View>
       </ScrollView>
