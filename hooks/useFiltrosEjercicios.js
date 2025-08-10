@@ -48,6 +48,11 @@ export function useFiltrosEjercicios(ejercicios, appliedFilters, searchText) {
           ejercicio.musculosPrimarios.includes(appliedFilters.musculo)
       );
     }
+    if (appliedFilters.fuerza) {
+      results = results.filter(
+        (ejercicio) => ejercicio.fuerza === appliedFilters.fuerza
+      );
+    }
 
     setFilteredEjercicios(results);
   }, [ejercicios, appliedFilters, searchText]);

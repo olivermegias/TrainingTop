@@ -58,12 +58,12 @@ router.get("/ejercicios/:usuarioId", async (req, res) => {
       }
     }
 
-    // Filtrar ejercicios con al menos 2 entrenamientos para mostrar progreso
+    // Filtrar ejercicios con al menos 3 entrenamientos para mostrar progreso
     const ejerciciosConProgreso = [];
 
     for (const [ejercicioId, data] of Object.entries(ejerciciosMap)) {
       console.log(`Procesando ejercicio: ${ejercicioId}, datos:`, data);
-      if (data.historico.length >= 2) {
+      if (data.historico.length >= 3) {
         // CORRECCIÓN: Buscar por el campo 'id' en lugar de '_id'
         let ejercicioInfo = await Ejercicio.findOne({ id: ejercicioId });
 

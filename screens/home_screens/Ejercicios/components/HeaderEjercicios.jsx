@@ -129,6 +129,15 @@ export function HeaderEjercicios({
               }
             />
           )}
+          {appliedFilters.fuerza && (
+            <FilterChip
+              label={appliedFilters.fuerza}
+              isActive={true}
+              onPress={() =>
+                toggleAppliedFilter("fuerza", appliedFilters.fuerza)
+              }
+            />
+          )}
 
           <TouchableOpacity
             style={styles.clearAllButton}

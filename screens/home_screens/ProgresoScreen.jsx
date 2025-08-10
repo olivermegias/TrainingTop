@@ -99,7 +99,6 @@ export default function ProgresoScreen() {
       // Cargar progreso de ejercicios
       const progresoResult = await fetchProgresoEjercicios(user.uid, 50); // Cargar todos los ejercicios
       if (progresoResult.success) {
-        console.log("Ejercicios cargados:", progresoResult.ejercicios.length);
         setTodosLosEjercicios(progresoResult.ejercicios); // Guardar todos
         setEjerciciosFiltrados(progresoResult.ejercicios); // Inicializar filtrados
         setProgresoEjercicios(progresoResult.ejercicios.slice(0, 5)); // Mostrar top 5
@@ -386,10 +385,10 @@ export default function ProgresoScreen() {
             {/* Resumen de top ejercicios */}
             <View style={styles.topEjerciciosContainer}>
               <Text style={styles.topEjerciciosTitle}>
-                Top 5 ejercicios con más progreso
+                Top 3 ejercicios con más progreso
               </Text>
               <View style={styles.topEjerciciosList}>
-                {progresoEjercicios.slice(0, 5).map((ejercicio, index) => (
+                {progresoEjercicios.slice(0, 3).map((ejercicio, index) => (
                   <TouchableOpacity
                     key={ejercicio.ejercicioId}
                     style={styles.topEjercicioItem}

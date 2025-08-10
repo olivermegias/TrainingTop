@@ -60,6 +60,7 @@ const FilterModalContent = ({
   categorias,
   equipos,
   musculos,
+  fuerza,
   toggleFilter,
   hasActiveTempFilters,
   clearTempFilters,
@@ -103,6 +104,12 @@ const FilterModalContent = ({
             options={musculos}
             selectedOption={tempFilters.musculo}
             onToggle={(value) => toggleFilter("musculo", value)}
+          />
+          <FilterChipList
+            title="Fuerza"
+            options={fuerza}
+            selectedOption={tempFilters.fuerza}
+            onToggle={(value) => toggleFilter("fuerza", value)}
           />
         </ScrollView>
 

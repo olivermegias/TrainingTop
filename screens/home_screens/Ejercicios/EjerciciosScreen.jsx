@@ -27,12 +27,14 @@ export default function EjerciciosScreen() {
     categoria: null,
     equipo: null,
     musculo: null,
+    fuerza: null,
   });
   const [tempFilters, setTempFilters] = useState({
     nivel: null,
     categoria: null,
     equipo: null,
     musculo: null,
+    fuerza: null,
   });
 
   // Opciones para los filtros (exactamente como están en la base de datos)
@@ -71,6 +73,11 @@ export default function EjerciciosScreen() {
     "hombros",
     "glúteos",
     "trampas",
+  ];
+  const fuerza = [
+    "tirar",
+    "empujar",
+    "estático",
   ];
 
   useEffect(() => {
@@ -141,6 +148,7 @@ export default function EjerciciosScreen() {
           categorias={categorias}
           equipos={equipos}
           musculos={musculos}
+          fuerza={fuerza}
           toggleFilter={toggleFilter}
           hasActiveTempFilters={hasActiveTempFilters}
           clearTempFilters={clearTempFilters}
@@ -158,6 +166,7 @@ export default function EjerciciosScreen() {
       categorias,
       equipos,
       musculos,
+      fuerza,
       toggleFilter,
       hasActiveTempFilters,
       clearTempFilters,
