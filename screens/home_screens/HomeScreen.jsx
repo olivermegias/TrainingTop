@@ -22,6 +22,7 @@ import {
 } from "../../services/usuarioPeticiones";
 import { fetchEntrenamientosUsuario } from "../../services/entrenamientoPeticiones";
 import { fetchRutinasPublicas } from "../../services/rutinasPeticiones";
+import { DetalleEntrenamientoModal } from '../../components/DetalleEntrenamientoModal';
 
 
 export default function HomeScreen() {
@@ -38,6 +39,9 @@ export default function HomeScreen() {
   const [rutinaPublicaActual, setRutinaPublicaActual] = useState(0);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [visibleCount, setVisibleCount] = useState(4);
+
+  const [entrenamientoSeleccionado, setEntrenamientoSeleccionado] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -89,6 +93,20 @@ export default function HomeScreen() {
         setLoading(false);
         setIsFirstLoad(false);
       }
+    }
+  };
+
+  const handleDayPress = (day) => {
+    const entrenamientoDelDia = entrenamientosCalendario.find(
+      entrenamiento => {
+        const fechaEntrenamiento = new Date(entrenamiento.fechaInicio).toISOString().split('T')[0];
+        return fechaEntrenamiento === day.dateString;
+      }
+    );
+
+    if (entrenamientoDelDia) {
+      setEntrenamientoSeleccionado(entrenamientoDelDia);
+      setModalVisible(true);
     }
   };
 
@@ -165,7 +183,8 @@ export default function HomeScreen() {
     );
 
     if (entrenamientoDelDia) {
-      navigation.navigate("DetalleEntrenamiento", { entrenamiento: entrenamientoDelDia });
+      setEntrenamientoSeleccionado(entrenamientoDelDia);
+      setModalVisible(true);
     }
   };
 
@@ -515,6 +534,10 @@ export default function HomeScreen() {
                 .map((entrenamiento, index) => (
                   <TouchableOpacity
                     key={index}
+                    onPress={() => {
+                      setEntrenamientoSeleccionado(entrenamiento);
+                      setModalVisible(true);
+                    }}
                     style={[
                       styles.entrenamientoCard,
                       index === 0 && styles.entrenamientoCardFirst
@@ -604,6 +627,14 @@ export default function HomeScreen() {
           )}
         </View>
       </ScrollView>
+      <DetalleEntrenamientoModal
+        visible={modalVisible}
+        onClose={() => {
+          setModalVisible(false);
+          setEntrenamientoSeleccionado(null);
+        }}
+        entrenamiento={entrenamientoSeleccionado}
+      />
     </SafeAreaView>
   );
 }

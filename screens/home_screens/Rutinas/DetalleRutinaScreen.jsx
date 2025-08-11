@@ -32,6 +32,7 @@ import {
   getEmojiSatisfaccion,
   getTextoDificultad,
 } from "../../../services/entrenamientoPeticiones";
+import { DetalleEntrenamientoModal } from '../../../components/DetalleEntrenamientoModal';
 
 export default function DetalleRutinaScreen() {
   const route = useRoute();
@@ -47,8 +48,9 @@ export default function DetalleRutinaScreen() {
   });
   const [historialEntrenamientos, setHistorialEntrenamientos] = useState([]);
   const [loadingHistorial, setLoadingHistorial] = useState(true);
-
   const [esRutinaActiva, setEsRutinaActiva] = useState(false);
+  const [entrenamientoSeleccionado, setEntrenamientoSeleccionado] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
     const obtenerDatos = async () => {
@@ -156,8 +158,8 @@ export default function DetalleRutinaScreen() {
       typeof nivel === "string"
         ? parseInt(nivel.replace(/\D/g, "")) || 3
         : typeof nivel === "number"
-        ? nivel
-        : 3;
+          ? nivel
+          : 3;
 
     const stars = [];
     for (let i = 0; i < 5; i++) {
@@ -410,7 +412,6 @@ export default function DetalleRutinaScreen() {
             <View style={styles.historialContainer}>
               <View style={styles.historialHeader}>
                 <View style={styles.historialTitleRow}>
-                  <Ionicons name="time-outline" size={20} color="#6200EE" />
                   <Text style={styles.sectionTitle}>
                     Historial de Entrenamientos
                   </Text>
@@ -438,7 +439,10 @@ export default function DetalleRutinaScreen() {
                       const promedios = calcularPromedios(entrenamiento);
 
                       return (
-                        <View key={index} style={styles.entrenamientoItem}>
+                        <TouchableOpacity key={index} style={styles.entrenamientoItem} onPress={() => {
+                          setEntrenamientoSeleccionado(entrenamiento);
+                          setModalVisible(true);
+                        }}>
                           <View style={styles.entrenamientoInfo}>
                             <Text style={styles.entrenamientoDia}>
                               {rutina.dias[entrenamiento.diaEntrenamiento]
@@ -515,7 +519,7 @@ export default function DetalleRutinaScreen() {
                               </View>
                             </View>
                           )}
-                        </View>
+                        </TouchableOpacity>
                       );
                     })
                 )}
@@ -562,6 +566,14 @@ export default function DetalleRutinaScreen() {
           )}
         </View>
       )}
+      <DetalleEntrenamientoModal
+        visible={modalVisible}
+        onClose={() => {
+          setModalVisible(false);
+          setEntrenamientoSeleccionado(null);
+        }}
+        entrenamiento={entrenamientoSeleccionado}
+      />
     </SafeAreaView>
   );
 }
@@ -748,7 +760,6 @@ const styles = StyleSheet.create({
   historialTitleRow: {
     flexDirection: "row",
     alignItems: "center",
-    flex: 1,
   },
   historialBadge: {
     backgroundColor: "#6200EE",
@@ -784,7 +795,6 @@ const styles = StyleSheet.create({
   },
   entrenamientoDia: {
     fontSize: 16,
-    fontWeight: "600",
     color: "#212121",
   },
   entrenamientoFecha: {
