@@ -7,21 +7,21 @@ const Stack = createStackNavigator();
 
 export default function HomeNavigation() {
   return (
-      <Stack.Navigator initialRouteName="Home">
-        <Stack.Screen 
-          name="Home" 
-          component={HomeScreen} 
-          options={{ 
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen 
-          name="EjecutarRutina" 
-          component={EjecutarRutinaScreen} 
-          options={{ 
-            headerShown: false,
-          }}
-        />
-      </Stack.Navigator>
+    <Stack.Navigator initialRouteName="Home">
+      <Stack.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="EjecutarRutina"
+        component={EjecutarRutinaScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
+    </Stack.Navigator>
   );
 }

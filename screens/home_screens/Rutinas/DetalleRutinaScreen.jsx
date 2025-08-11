@@ -214,7 +214,7 @@ export default function DetalleRutinaScreen() {
         Alert.alert("Éxito", "Rutina eliminada correctamente", [
           {
             text: "OK",
-            onPress: () => navigation.goBack(),
+            onPress: () => navigation.navigate("Rutina"),
           },
         ]);
       } else {
@@ -227,7 +227,7 @@ export default function DetalleRutinaScreen() {
 
         // Dar tiempo al toast para mostrarse antes de navegar
         setTimeout(() => {
-          navigation.goBack();
+          navigation.navigate("Rutina");
         }, 1500);
       }
     } catch (error) {
@@ -294,7 +294,7 @@ export default function DetalleRutinaScreen() {
           <Text style={styles.errorText}>No se pudo cargar la rutina</Text>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => navigation.navigate("Rutina")}
           >
             <Text style={styles.backButtonText}>Volver</Text>
           </TouchableOpacity>
@@ -314,7 +314,7 @@ export default function DetalleRutinaScreen() {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backIcon}
-            onPress={() => navigation.goBack()}
+            onPress={() => navigation.navigate("Rutina")}
           >
             <Ionicons name="arrow-back" size={24} color="#6200EE" />
           </TouchableOpacity>
