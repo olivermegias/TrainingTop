@@ -173,11 +173,9 @@ router.post("/asignar", async (req, res) => {
     const nuevaRutina = new Rutina({
       nombre: rutina.nombre,
       descripcion: rutina.descripcion,
-      ejercicios: rutina.ejercicios,
-      creador: usuarioId,
-      publica: false,
-      ...rutina.toObject(),
-      _id: undefined,
+      nivel: rutina.nivel,
+      dias: rutina.dias,
+      publica: false, 
     });
 
     const rutinaGuardada = await nuevaRutina.save();

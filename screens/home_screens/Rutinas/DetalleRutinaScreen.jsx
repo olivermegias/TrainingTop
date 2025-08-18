@@ -264,6 +264,7 @@ export default function DetalleRutinaScreen() {
           type: "success",
         });
       }
+      navigation.goBack();
     } catch (error) {
       if (Platform.OS === "android") {
         Alert.alert("Error", "No se pudo asignar la rutina.");
