@@ -4,7 +4,7 @@ const SerieSchema = new mongoose.Schema({
   peso: { type: Number, default: 0 },
   repeticiones: { type: Number, required: true },
   completada: { type: Boolean, default: false },
-  saltada: { type: Boolean, default: false }
+  saltada: { type: Boolean, default: false },
 });
 
 const ValoracionSchema = new mongoose.Schema({
@@ -19,12 +19,16 @@ const EjercicioEntrenamientoSchema = new mongoose.Schema({
   series: [SerieSchema],
   seriesSaltadas: { type: Number, default: 0 },
   valoracion: { type: ValoracionSchema, default: null },
-  duracion: { type: Number, default: 0 } // duración total del ejercicio en segundos
+  duracion: { type: Number, default: 0 }, // duración total del ejercicio en segundos
 });
 
 const EntrenamientoSchema = new mongoose.Schema({
   usuarioId: { type: String, required: true, index: true },
-  rutinaId: { type: mongoose.Schema.Types.ObjectId, ref: "Rutina", required: true },
+  rutinaId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Rutina",
+    required: true,
+  },
   nombreRutina: { type: String, required: true },
   diaEntrenamiento: { type: Number, required: true },
   ejercicios: [EjercicioEntrenamientoSchema],
@@ -32,7 +36,29 @@ const EntrenamientoSchema = new mongoose.Schema({
   fechaInicio: { type: Date, required: true },
   fechaFin: { type: Date, required: true },
   completado: { type: Boolean, default: true },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  analisisIA: {
+    analisis: {
+      type: String,
+      default: null,
+    },
+    metricas: {
+      porcentajeCompletado: Number,
+      promedioSatisfaccion: String,
+      promedioEsfuerzo: String,
+      promedioDificultad: String,
+      totalSeriesCompletadas: Number,
+      totalSeriesSaltadas: Number,
+    },
+    ejerciciosRecomendados: [
+      {
+        nombre: String,
+        musculos: [String],
+        nivel: String,
+      },
+    ],
+    timestamp: Date,
+  },
 });
 
 // Índices para mejorar las consultas

@@ -20,6 +20,7 @@ router.post("/", async (req, res) => {
       fechaInicio,
       fechaFin,
       completado,
+      analisisIA
     } = req.body;
 
     // Validaciones básicas
@@ -61,6 +62,7 @@ router.post("/", async (req, res) => {
       fechaInicio: new Date(fechaInicio),
       fechaFin: new Date(fechaFin),
       completado: completado !== false,
+      analisisIA: analisisIA || null,
     });
 
     console.log("💾 Guardando entrenamiento...");

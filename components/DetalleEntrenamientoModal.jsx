@@ -29,7 +29,7 @@ export const DetalleEntrenamientoModal = ({ visible, onClose, entrenamiento }) =
   const cargarEjerciciosInfo = async () => {
     setLoading(true);
     const infoEjercicios = {};
-    
+
     try {
       for (const ejercicio of entrenamiento.ejercicios) {
         const info = await fetchEjercicioPorId(ejercicio.ejercicioId);
@@ -41,7 +41,7 @@ export const DetalleEntrenamientoModal = ({ visible, onClose, entrenamiento }) =
     } catch (error) {
       console.error('Error cargando info de ejercicios:', error);
     }
-    
+
     setLoading(false);
   };
 
@@ -67,7 +67,7 @@ export const DetalleEntrenamientoModal = ({ visible, onClose, entrenamiento }) =
     const horas = Math.floor(segundos / 3600);
     const minutos = Math.floor((segundos % 3600) / 60);
     const segs = segundos % 60;
-    
+
     if (horas > 0) {
       return `${horas}h ${minutos}m ${segs}s`;
     } else if (minutos > 0) {
@@ -139,7 +139,7 @@ export const DetalleEntrenamientoModal = ({ visible, onClose, entrenamiento }) =
             </View>
           </LinearGradient>
 
-          <ScrollView 
+          <ScrollView
             style={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
@@ -207,86 +207,120 @@ export const DetalleEntrenamientoModal = ({ visible, onClose, entrenamiento }) =
             {/* Lista de ejercicios */}
             <View style={styles.ejerciciosSection}>
               <Text style={styles.sectionTitle}>Ejercicios realizados</Text>
-              
+
               {loading ? (
                 <ActivityIndicator size="small" color="#6200EE" />
               ) : (
-                entrenamiento.ejercicios.map((ejercicio, index) => {
-                  const infoEjercicio = ejerciciosInfo[ejercicio.ejercicioId];
-                  const seriesCompletadas = ejercicio.series?.filter(
-                    s => s.completada && !s.saltada
-                  ).length || 0;
-                  return (
-                    <View key={index} style={styles.ejercicioCard}>
-                      <View style={styles.ejercicioHeader}>
-                        <Text style={styles.ejercicioNombre}>
-                          {infoEjercicio?.nombre || `Ejercicio ${ejercicio.ejercicioId}`}
-                        </Text>
-                        <View style={styles.ejercicioBadge}>
-                          <Text style={styles.ejercicioBadgeText}>
-                            {seriesCompletadas}/{ejercicio.series?.length || 0} series
+                <>
+                  {entrenamiento.ejercicios.map((ejercicio, index) => {
+                    const infoEjercicio = ejerciciosInfo[ejercicio.ejercicioId];
+                    const seriesCompletadas = ejercicio.series?.filter(
+                      s => s.completada && !s.saltada
+                    ).length || 0;
+                    return (
+                      <View key={index} style={styles.ejercicioCard}>
+                        <View style={styles.ejercicioHeader}>
+                          <Text style={styles.ejercicioNombre}>
+                            {infoEjercicio?.nombre || `Ejercicio ${ejercicio.ejercicioId}`}
                           </Text>
+                          <View style={styles.ejercicioBadge}>
+                            <Text style={styles.ejercicioBadgeText}>
+                              {seriesCompletadas}/{ejercicio.series?.length || 0} series
+                            </Text>
+                          </View>
                         </View>
-                      </View>
 
-                      {/* Series del ejercicio */}
-                      <View style={styles.seriesContainer}>
-                        {ejercicio.series?.map((serie, serieIndex) => (
-                          <View key={serieIndex} style={styles.serieRow}>
-                            <Text style={styles.serieNumero}>#{serieIndex + 1}</Text>
-                            {serie.saltada ? (
-                              <Text style={styles.serieSaltada}>Saltada</Text>
-                            ) : serie.completada ? (
-                              <Text style={styles.serieInfo}>
-                                {serie.peso} kg × {serie.repeticiones} reps
-                              </Text>
-                            ) : (
-                              <Text style={styles.serieIncompleta}>No completada</Text>
-                            )}
-                          </View>
-                        ))}
-                      </View>
+                        {/* Series del ejercicio */}
+                        <View style={styles.seriesContainer}>
+                          {ejercicio.series?.map((serie, serieIndex) => (
+                            <View key={serieIndex} style={styles.serieRow}>
+                              <Text style={styles.serieNumero}>#{serieIndex + 1}</Text>
+                              {serie.saltada ? (
+                                <Text style={styles.serieSaltada}>Saltada</Text>
+                              ) : serie.completada ? (
+                                <Text style={styles.serieInfo}>
+                                  {serie.peso} kg × {serie.repeticiones} reps
+                                </Text>
+                              ) : (
+                                <Text style={styles.serieIncompleta}>No completada</Text>
+                              )}
+                            </View>
+                          ))}
+                        </View>
 
-                      {/* Valoración del ejercicio */}
-                      {ejercicio.valoracion && (
-                        <View style={styles.valoracionContainer}>
-                          <View style={styles.valoracionItem}>
-                            <Text style={styles.valoracionLabel}>Satisfacción</Text>
-                            <Text style={styles.valoracionEmoji}>
-                              {getEmojiSatisfaccion(ejercicio.valoracion.satisfaccion)}
-                            </Text>
-                          </View>
-                          <View style={styles.valoracionItem}>
-                            <Text style={styles.valoracionLabel}>Esfuerzo</Text>
-                            <Text style={styles.valoracionEmoji}>
-                              {getEmojiEsfuerzo(ejercicio.valoracion.esfuerzo)}
-                            </Text>
-                          </View>
-                          <View style={styles.valoracionItem}>
-                            <Text style={styles.valoracionLabel}>Dificultad</Text>
-                            <View 
-                              style={[
-                                styles.dificultadBadge,
-                                { backgroundColor: getColorDificultad(ejercicio.valoracion.dificultad) }
-                              ]}
-                            >
-                              <Text style={styles.dificultadText}>
-                                {ejercicio.valoracion.dificultad}/5
+                        {/* Valoración del ejercicio */}
+                        {ejercicio.valoracion && (
+                          <View style={styles.valoracionContainer}>
+                            <View style={styles.valoracionItem}>
+                              <Text style={styles.valoracionLabel}>Satisfacción</Text>
+                              <Text style={styles.valoracionEmoji}>
+                                {getEmojiSatisfaccion(ejercicio.valoracion.satisfaccion)}
                               </Text>
                             </View>
+                            <View style={styles.valoracionItem}>
+                              <Text style={styles.valoracionLabel}>Esfuerzo</Text>
+                              <Text style={styles.valoracionEmoji}>
+                                {getEmojiEsfuerzo(ejercicio.valoracion.esfuerzo)}
+                              </Text>
+                            </View>
+                            <View style={styles.valoracionItem}>
+                              <Text style={styles.valoracionLabel}>Dificultad</Text>
+                              <View
+                                style={[
+                                  styles.dificultadBadge,
+                                  { backgroundColor: getColorDificultad(ejercicio.valoracion.dificultad) }
+                                ]}
+                              >
+                                <Text style={styles.dificultadText}>
+                                  {ejercicio.valoracion.dificultad}/5
+                                </Text>
+                              </View>
+                            </View>
                           </View>
-                        </View>
-                      )}
+                        )}
 
-                      {ejercicio.valoracion?.notas && (
-                        <View style={styles.notasContainer}>
-                          <Text style={styles.notasLabel}>Notas:</Text>
-                          <Text style={styles.notasText}>{ejercicio.valoracion.notas}</Text>
-                        </View>
-                      )}
+                        {ejercicio.valoracion?.notas && (
+                          <View style={styles.notasContainer}>
+                            <Text style={styles.notasLabel}>Notas:</Text>
+                            <Text style={styles.notasText}>{ejercicio.valoracion.notas}</Text>
+                          </View>
+                        )}
+                      </View>
+                    );
+                  })}
+
+                  {entrenamiento.analisisIA && entrenamiento.analisisIA.analisis && (
+                    <View style={styles.seccionAnalisisIA}>
+                      <View style={styles.headerAnalisisIA}>
+                        <Ionicons name="bulb-outline" size={24} color="#6200EE" />
+                        <Text style={styles.tituloAnalisisIA}>Análisis IA</Text>
+                      </View>
+
+                      <View style={styles.contenidoAnalisisIA}>
+                        <Text style={styles.textoAnalisisIA}>
+                          {entrenamiento.analisisIA.analisis}
+                        </Text>
+
+                        {entrenamiento.analisisIA.metricas && (
+                          <View style={styles.metricasIAContainer}>
+                            <View style={styles.metricaIA}>
+                              <Text style={styles.valorMetricaIA}>
+                                {entrenamiento.analisisIA.metricas.promedioSatisfaccion}/5
+                              </Text>
+                              <Text style={styles.labelMetricaIA}>Satisfacción</Text>
+                            </View>
+                            <View style={styles.metricaIA}>
+                              <Text style={styles.valorMetricaIA}>
+                                {entrenamiento.analisisIA.metricas.promedioEsfuerzo}/5
+                              </Text>
+                              <Text style={styles.labelMetricaIA}>Esfuerzo</Text>
+                            </View>
+                          </View>
+                        )}
+                      </View>
                     </View>
-                  );
-                })
+                  )}
+                </>
               )}
             </View>
           </ScrollView>
@@ -530,4 +564,53 @@ const styles = StyleSheet.create({
     color: '#212121',
     lineHeight: 20,
   },
+  seccionAnalisisIA: {
+  marginTop: 20,
+  backgroundColor: "#F8F5FF",
+  borderRadius: 12,
+  padding: 15,
+},
+headerAnalisisIA: {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 8,
+  marginBottom: 12,
+},
+tituloAnalisisIA: {
+  fontSize: 18,
+  fontWeight: "bold",
+  color: "#333",
+},
+contenidoAnalisisIA: {
+  flex:1,
+  backgroundColor: "#FFF",
+  borderRadius: 8,
+  padding: 12,
+},
+textoAnalisisIA: {
+  fontSize: 14,
+  lineHeight: 22,
+  color: "#444",
+},
+metricasIAContainer: {
+  flexDirection: "row",
+  justifyContent: "space-around",
+  marginTop: 15,
+  paddingTop: 15,
+  borderTopWidth: 1,
+  borderTopColor: "#E0E0E0",
+},
+metricaIA: {
+  alignItems: "center",
+},
+valorMetricaIA: {
+  fontSize: 20,
+  fontWeight: "bold",
+  color: "#6200EE",
+},
+labelMetricaIA: {
+  fontSize: 12,
+  color: "#666",
+  marginTop: 4,
+},
 });

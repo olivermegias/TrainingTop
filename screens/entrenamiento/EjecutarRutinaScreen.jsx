@@ -68,11 +68,12 @@ export default function EjecutarRutinaScreen() {
 
   const [modalSeleccionarDia, setModalSeleccionarDia] = useState(false);
   const [diaRecomendado, setDiaRecomendado] = useState(0);
-  const [cargandoProgreso, setCargandoProgreso] = useState(true);
 
   const [mostrandoAnalisis, setMostrandoAnalisis] = useState(false);
   const [analisisIA, setAnalisisIA] = useState(null);
   const [cargandoAnalisis, setCargandoAnalisis] = useState(false);
+
+  const [preguntarAnalisisIA, setPreguntarAnalisisIA] = useState(false);
 
   useEffect(() => {
     const inicializarDatos = () => {
@@ -136,13 +137,11 @@ export default function EjecutarRutinaScreen() {
 
   useEffect(() => {
     const cargarProgreso = async () => {
-      setCargandoProgreso(true);
       const resultado = await fetchProgresoRutina(user.uid, rutina._id);
       if (resultado.success) {
         setDiaRecomendado(resultado.diaActual);
         setDiaActual(resultado.diaActual);
       }
-      setCargandoProgreso(false);
     };
 
     cargarProgreso();
@@ -405,73 +404,69 @@ export default function EjecutarRutinaScreen() {
         fechaInicio: horaInicio,
         fechaFin: horaFin,
         completado: true,
+        analisisIA: null, // Inicialmente null
       };
 
-      // Primero guardar el entrenamiento
-      console.log("💾 Guardando entrenamiento...");
-      const resultado = await guardarEntrenamiento(datosEntrenamiento);
+      // Guardar temporalmente los datos del entrenamiento
+      setEntrenamientoData(prev => ({
+        ...prev,
+        datosGuardados: datosEntrenamiento
+      }));
 
-      if (resultado.success) {
-        console.log("✅ Entrenamiento guardado, iniciando análisis IA...");
-
-        // Preparar datos SIMPLIFICADOS para el análisis
-        setCargandoAnalisis(true);
-        setMostrandoAnalisis(true);
-
-        // Datos mínimos para la IA
-        const datosAnalisisSimple = {
-          usuarioId: user.uid,
-          entrenamientoData: datosEntrenamiento.ejercicios,
-          ejerciciosRealizados: [], // Vacío por ahora para simplificar
-          duracionTotal: duracion,
-          rutinaInfo: {
-            nombre: rutina.nombre,
-            diaIndex: diaActual,
-            nivel: rutina.nivel || 1,
-          },
-        };
-
-        console.log("📤 Enviando a IA (simplificado):", datosAnalisisSimple);
-
-        try {
-          const resultadoAnalisis = await analizarEntrenamientoConIA(datosAnalisisSimple);
-          console.log("📥 Respuesta IA:", resultadoAnalisis);
-
-          if (resultadoAnalisis.success && resultadoAnalisis.data) {
-            setAnalisisIA(resultadoAnalisis.data);
-          } else {
-            // Usar análisis fallback
-            setAnalisisIA({
-              analisis: "¡Excelente trabajo! Has completado tu entrenamiento con éxito.",
-              ejerciciosRecomendados: [],
-              metricas: {
-                porcentajeCompletado: 100,
-                promedioSatisfaccion: "3",
-                totalSeriesCompletadas: datosEntrenamiento.ejercicios.length
-              },
-            });
-          }
-        } catch (errorIA) {
-          console.error("Error en análisis IA:", errorIA);
-          // Usar fallback
-          setAnalisisIA({
-            analisis: "¡Felicitaciones por completar tu entrenamiento! Sigue así.",
-            ejerciciosRecomendados: [],
-            metricas: {},
-          });
-        }
-
-        setCargandoAnalisis(false);
-      } else {
-        throw new Error(resultado.error);
-      }
+      // Mostrar modal de pregunta
+      setPreguntarAnalisisIA(true);
     } catch (error) {
-      console.error("❌ Error al finalizar entrenamiento:", error);
-      setCargandoAnalisis(false);
-      mostrarToast(
-        error.message || "Error al guardar el entrenamiento",
-        "error"
-      );
+      console.error("Error preparando entrenamiento:", error);
+      mostrarToast("Error al finalizar entrenamiento", "error");
+    }
+  };
+
+  // Nueva función para procesar con o sin IA
+  const procesarFinalizacion = async (conAnalisis) => {
+    setPreguntarAnalisisIA(false);
+
+    const datosEntrenamiento = entrenamientoData.datosGuardados;
+
+    if (conAnalisis) {
+      setCargandoAnalisis(true);
+      setMostrandoAnalisis(true);
+
+      const datosAnalisisSimple = {
+        usuarioId: user.uid,
+        entrenamientoData: datosEntrenamiento.ejercicios,
+        ejerciciosRealizados: [],
+        duracionTotal: datosEntrenamiento.duracion,
+        rutinaInfo: {
+          nombre: rutina.nombre,
+          diaIndex: diaActual,
+          nivel: rutina.nivel || 1,
+        },
+      };
+
+      try {
+        const resultadoAnalisis = await analizarEntrenamientoConIA(datosAnalisisSimple);
+
+        if (resultadoAnalisis.success && resultadoAnalisis.data) {
+          setAnalisisIA(resultadoAnalisis.data);
+          // Actualizar datos con el análisis
+          datosEntrenamiento.analisisIA = resultadoAnalisis.data;
+        }
+      } catch (error) {
+        console.error("Error en análisis IA:", error);
+      } finally {
+        setCargandoAnalisis(false);
+      }
+    } else {
+      // Sin análisis, guardar directamente
+      setMostrandoAnalisis(true);
+      setAnalisisIA(null);
+    }
+
+    // Guardar el entrenamiento con o sin análisis
+    const resultado = await guardarEntrenamiento(datosEntrenamiento);
+
+    if (resultado.success) {
+      console.log("✅ Entrenamiento guardado exitosamente");
     }
   };
 
@@ -1203,6 +1198,47 @@ export default function EjecutarRutinaScreen() {
           </View>
         </View>
       </Modal>
+      {/* Modal de Pregunta Análisis IA */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={preguntarAnalisisIA}
+        onRequestClose={() => procesarFinalizacion(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalPreguntaIA}>
+            <View style={styles.iconoIA}>
+              <Ionicons name="bulb-outline" size={60} color="#6200EE" />
+            </View>
+
+            <Text style={styles.tituloPreguntaIA}>
+              ¿Analizar con IA?
+            </Text>
+
+            <Text style={styles.descripcionPreguntaIA}>
+              Obtén un análisis personalizado de tu entrenamiento con recomendaciones
+              para mejorar tu progreso
+            </Text>
+
+            <View style={styles.botonesIA}>
+              <TouchableOpacity
+                style={[styles.botonIA, styles.botonIASecundario]}
+                onPress={() => procesarFinalizacion(false)}
+              >
+                <Text style={styles.textoBotonSecundario}>No, gracias</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.botonIA, styles.botonIAPrimario]}
+                onPress={() => procesarFinalizacion(true)}
+              >
+                <Ionicons name="sparkles" size={20} color="#FFF" />
+                <Text style={styles.textoBotonPrimario}>Analizar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
       {/* Modal de Análisis Post-Entrenamiento */}
       <Modal
         animationType="slide"
@@ -1283,23 +1319,27 @@ export default function EjecutarRutinaScreen() {
                   )}
                 </>
               ) : (
-                <Text style={styles.analisisTexto}>
-                  ¡Excelente trabajo! Has completado tu entrenamiento con éxito.
-                </Text>
+                <View style={styles.sinAnalisisContainer}>
+                  <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
+                  <Text style={styles.sinAnalisisTexto}>
+                    Tu entrenamiento ha sido guardado exitosamente
+                  </Text>
+                </View>
               )}
-
-              <View style={styles.botonesAnalisis}>
-                <TouchableOpacity
-                  style={[styles.botonModal, styles.botonContinuar]}
-                  onPress={() => {
-                    setMostrandoAnalisis(false);
-                    navigation.goBack();
-                  }}
-                >
-                  <Text style={styles.textoBotonModal}>Continuar</Text>
-                </TouchableOpacity>
-              </View>
             </ScrollView>
+
+            <View style={styles.botonesAnalisis}>
+              <TouchableOpacity
+                style={[styles.botonContinuarPrimario, cargandoAnalisis && {backgroundColor: 'gray'}]}
+                onPress={() => {
+                  setMostrandoAnalisis(false);
+                  navigation.goBack();
+                }}
+                disabled={cargandoAnalisis}
+              >
+                <Text style={styles.textoBotonContinuar}>Continuar</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -2055,5 +2095,118 @@ const styles = StyleSheet.create({
   },
   botonContinuar: {
     backgroundColor: "#6200EE",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalPreguntaIA: {
+    backgroundColor: "#FFF",
+    borderRadius: 20,
+    padding: 30,
+    width: "85%",
+    maxWidth: 350,
+    alignItems: "center",
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  iconoIA: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "#F3E5F5",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  tituloPreguntaIA: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#212121",
+    marginBottom: 12,
+  },
+  descripcionPreguntaIA: {
+    fontSize: 15,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 30,
+    lineHeight: 22,
+  },
+  botonesIA: {
+    flexDirection: "row",
+    gap: 12,
+    width: "100%",
+  },
+  botonIA: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  botonIASecundario: {
+    backgroundColor: "#F5F5F5",
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+  botonIAPrimario: {
+    backgroundColor: "#6200EE",
+    elevation: 3,
+    shadowColor: "#6200EE",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  textoBotonSecundario: {
+    color: "#666",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  textoBotonPrimario: {
+    color: "#FFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  // Modal de análisis mejorado
+  modalAnalisis: {
+    maxHeight: "80%",
+    backgroundColor: "#FFF",
+    borderRadius: 20,
+    padding: 20,
+    width: "90%",
+    elevation: 10,
+  },
+  sinAnalisisContainer: {
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  sinAnalisisTexto: {
+    fontSize: 18,
+    color: "#333",
+    marginTop: 20,
+    textAlign: "center",
+  },
+  botonContinuarPrimario: {
+    backgroundColor: "#6200EE",
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    elevation: 3,
+    shadowColor: "#6200EE",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  textoBotonContinuar: {
+    color: "#FFF",
+    fontSize: 18,
+    fontWeight: "bold",
   },
 });
