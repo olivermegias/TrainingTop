@@ -12,6 +12,7 @@ import {
   TextInput,
   Image,
   Dimensions,
+  ActivityIndicator
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,6 +20,7 @@ import { AuthContext } from "../../context/AuthContext";
 import { Toast } from "../../components/ToastComponent";
 import { fetchEjercicioPorId } from "../../services/ejerciciosPeticiones";
 import { guardarEntrenamiento } from "../../services/entrenamientoPeticiones";
+import { analizarEntrenamientoConIA } from "../../services/entrenamientoPeticiones";
 
 const { width } = Dimensions.get("window");
 
@@ -67,6 +69,10 @@ export default function EjecutarRutinaScreen() {
   const [modalSeleccionarDia, setModalSeleccionarDia] = useState(false);
   const [diaRecomendado, setDiaRecomendado] = useState(0);
   const [cargandoProgreso, setCargandoProgreso] = useState(true);
+
+  const [mostrandoAnalisis, setMostrandoAnalisis] = useState(false);
+  const [analisisIA, setAnalisisIA] = useState(null);
+  const [cargandoAnalisis, setCargandoAnalisis] = useState(false);
 
   useEffect(() => {
     const inicializarDatos = () => {
@@ -293,12 +299,12 @@ export default function EjecutarRutinaScreen() {
           series: prev[diaActual][ejercicioActual].series.map((serie, index) =>
             index === serieActual
               ? {
-                  ...serie,
-                  peso: 0,
-                  repeticiones: 0,
-                  completada: false,
-                  saltada: true,
-                }
+                ...serie,
+                peso: 0,
+                repeticiones: 0,
+                completada: false,
+                saltada: true,
+              }
               : serie
           ),
         },
@@ -375,7 +381,6 @@ export default function EjecutarRutinaScreen() {
       const horaFin = new Date();
       const duracion = Math.floor((horaFin - horaInicio) / 1000);
 
-      // Usar los valores pasados como parámetros o los del estado si no se pasan
       const valoracionesFinal =
         valoracionesActualizadas || valoracionesEjercicios;
       const tiemposFinal = tiemposActualizados || tiemposEjercicios;
@@ -402,29 +407,67 @@ export default function EjecutarRutinaScreen() {
         completado: true,
       };
 
+      // Primero guardar el entrenamiento
+      console.log("💾 Guardando entrenamiento...");
       const resultado = await guardarEntrenamiento(datosEntrenamiento);
 
       if (resultado.success) {
-        if (Platform.OS === "android") {
-          Alert.alert(
-            "¡Entrenamiento Completado!",
-            "Tu progreso ha sido guardado exitosamente.",
-            [
-              {
-                text: "Continuar",
-                onPress: () => navigation.goBack(),
+        console.log("✅ Entrenamiento guardado, iniciando análisis IA...");
+
+        // Preparar datos SIMPLIFICADOS para el análisis
+        setCargandoAnalisis(true);
+        setMostrandoAnalisis(true);
+
+        // Datos mínimos para la IA
+        const datosAnalisisSimple = {
+          usuarioId: user.uid,
+          entrenamientoData: datosEntrenamiento.ejercicios,
+          ejerciciosRealizados: [], // Vacío por ahora para simplificar
+          duracionTotal: duracion,
+          rutinaInfo: {
+            nombre: rutina.nombre,
+            diaIndex: diaActual,
+            nivel: rutina.nivel || 1,
+          },
+        };
+
+        console.log("📤 Enviando a IA (simplificado):", datosAnalisisSimple);
+
+        try {
+          const resultadoAnalisis = await analizarEntrenamientoConIA(datosAnalisisSimple);
+          console.log("📥 Respuesta IA:", resultadoAnalisis);
+
+          if (resultadoAnalisis.success && resultadoAnalisis.data) {
+            setAnalisisIA(resultadoAnalisis.data);
+          } else {
+            // Usar análisis fallback
+            setAnalisisIA({
+              analisis: "¡Excelente trabajo! Has completado tu entrenamiento con éxito.",
+              ejerciciosRecomendados: [],
+              metricas: {
+                porcentajeCompletado: 100,
+                promedioSatisfaccion: "3",
+                totalSeriesCompletadas: datosEntrenamiento.ejercicios.length
               },
-            ]
-          );
-        } else {
-          mostrarToast("¡Entrenamiento guardado exitosamente! 📊", "success");
-          navigation.goBack();
+            });
+          }
+        } catch (errorIA) {
+          console.error("Error en análisis IA:", errorIA);
+          // Usar fallback
+          setAnalisisIA({
+            analisis: "¡Felicitaciones por completar tu entrenamiento! Sigue así.",
+            ejerciciosRecomendados: [],
+            metricas: {},
+          });
         }
+
+        setCargandoAnalisis(false);
       } else {
         throw new Error(resultado.error);
       }
     } catch (error) {
-      console.error("Error al guardar entrenamiento:", error);
+      console.error("❌ Error al finalizar entrenamiento:", error);
+      setCargandoAnalisis(false);
       mostrarToast(
         error.message || "Error al guardar el entrenamiento",
         "error"
@@ -982,19 +1025,19 @@ export default function EjecutarRutinaScreen() {
                       style={[
                         styles.emojiButton,
                         valoracionActual.satisfaccion === valor &&
-                          styles.emojiSelected,
+                        styles.emojiSelected,
                       ]}
                     >
                       <Text style={styles.emojiText}>
                         {valor === 1
                           ? "😞"
                           : valor === 2
-                          ? "😕"
-                          : valor === 3
-                          ? "😐"
-                          : valor === 4
-                          ? "😊"
-                          : "😄"}
+                            ? "😕"
+                            : valor === 3
+                              ? "😐"
+                              : valor === 4
+                                ? "😊"
+                                : "😄"}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -1017,19 +1060,19 @@ export default function EjecutarRutinaScreen() {
                       style={[
                         styles.emojiButton,
                         valoracionActual.esfuerzo === valor &&
-                          styles.emojiSelected,
+                        styles.emojiSelected,
                       ]}
                     >
                       <Text style={styles.emojiText}>
                         {valor === 1
                           ? "😴"
                           : valor === 2
-                          ? "🙂"
-                          : valor === 3
-                          ? "😤"
-                          : valor === 4
-                          ? "💪"
-                          : "🔥"}
+                            ? "🙂"
+                            : valor === 3
+                              ? "😤"
+                              : valor === 4
+                                ? "💪"
+                                : "🔥"}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -1066,7 +1109,7 @@ export default function EjecutarRutinaScreen() {
                         style={[
                           styles.nivelText,
                           valoracionActual.dificultad === valor &&
-                            styles.nivelTextSelected,
+                          styles.nivelTextSelected,
                         ]}
                       >
                         {texto}
@@ -1157,6 +1200,106 @@ export default function EjecutarRutinaScreen() {
             >
               <Text style={styles.cancelButtonText}>Cancelar</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+      {/* Modal de Análisis Post-Entrenamiento */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={mostrandoAnalisis}
+        onRequestClose={() => {
+          setMostrandoAnalisis(false);
+          navigation.goBack();
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, styles.modalAnalisis]}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={styles.modalTitle}>
+                🏆 ¡Entrenamiento Completado!
+              </Text>
+
+              {cargandoAnalisis ? (
+                <View style={styles.cargandoContainer}>
+                  <ActivityIndicator size="large" color="#6200EE" />
+                  <Text style={styles.cargandoTexto}>
+                    Analizando tu entrenamiento...
+                  </Text>
+                </View>
+              ) : analisisIA ? (
+                <>
+                  {/* Métricas rápidas */}
+                  {analisisIA.metricas && (
+                    <View style={styles.metricasContainer}>
+                      <View style={styles.metricaItem}>
+                        <Text style={styles.metricaValor}>
+                          {analisisIA.metricas.porcentajeCompletado}%
+                        </Text>
+                        <Text style={styles.metricaLabel}>Completado</Text>
+                      </View>
+                      <View style={styles.metricaItem}>
+                        <Text style={styles.metricaValor}>
+                          {analisisIA.metricas.promedioSatisfaccion}/5
+                        </Text>
+                        <Text style={styles.metricaLabel}>Satisfacción</Text>
+                      </View>
+                      <View style={styles.metricaItem}>
+                        <Text style={styles.metricaValor}>
+                          {analisisIA.metricas.totalSeriesCompletadas}
+                        </Text>
+                        <Text style={styles.metricaLabel}>Series</Text>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Análisis de IA */}
+                  <View style={styles.analisisContainer}>
+                    <Text style={styles.analisisTitle}>
+                      💡 Análisis Personalizado
+                    </Text>
+                    <Text style={styles.analisisTexto}>
+                      {analisisIA.analisis}
+                    </Text>
+                  </View>
+
+                  {/* Ejercicios recomendados */}
+                  {analisisIA.ejerciciosRecomendados?.length > 0 && (
+                    <View style={styles.recomendacionesContainer}>
+                      <Text style={styles.recomendacionesTitle}>
+                        🔄 Ejercicios Alternativos
+                      </Text>
+                      {analisisIA.ejerciciosRecomendados.map((ejercicio, idx) => (
+                        <View key={idx} style={styles.ejercicioRecomendado}>
+                          <Text style={styles.ejercicioNombre}>
+                            • {ejercicio.nombre}
+                          </Text>
+                          <Text style={styles.ejercicioInfo}>
+                            {ejercicio.musculos?.join(", ")} - {ejercicio.nivel}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </>
+              ) : (
+                <Text style={styles.analisisTexto}>
+                  ¡Excelente trabajo! Has completado tu entrenamiento con éxito.
+                </Text>
+              )}
+
+              <View style={styles.botonesAnalisis}>
+                <TouchableOpacity
+                  style={[styles.botonModal, styles.botonContinuar]}
+                  onPress={() => {
+                    setMostrandoAnalisis(false);
+                    navigation.goBack();
+                  }}
+                >
+                  <Text style={styles.textoBotonModal}>Continuar</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -1828,5 +1971,89 @@ const styles = StyleSheet.create({
     color: "#4CAF50",
     fontWeight: "600",
     marginTop: 4,
+  },
+  // Estilos para el análisis IA
+  modalAnalisis: {
+    maxHeight: "80%",
+  },
+  cargandoContainer: {
+    alignItems: "center",
+    paddingVertical: 30,
+  },
+  cargandoTexto: {
+    marginTop: 10,
+    fontSize: 16,
+    color: "#666",
+  },
+  metricasContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    backgroundColor: "#F5F5F5",
+    borderRadius: 12,
+    padding: 15,
+    marginVertical: 15,
+  },
+  metricaItem: {
+    alignItems: "center",
+  },
+  metricaValor: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#6200EE",
+  },
+  metricaLabel: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 4,
+  },
+  analisisContainer: {
+    backgroundColor: "#F0F7FF",
+    borderRadius: 12,
+    padding: 15,
+    marginVertical: 10,
+  },
+  analisisTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+    color: "#333",
+  },
+  analisisTexto: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: "#444",
+  },
+  recomendacionesContainer: {
+    marginTop: 15,
+  },
+  recomendacionesTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+    color: "#333",
+  },
+  ejercicioRecomendado: {
+    backgroundColor: "#FFF",
+    borderRadius: 8,
+    padding: 12,
+    marginVertical: 5,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+  ejercicioNombre: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+  },
+  ejercicioInfo: {
+    fontSize: 13,
+    color: "#666",
+    marginTop: 4,
+  },
+  botonesAnalisis: {
+    marginTop: 20,
+  },
+  botonContinuar: {
+    backgroundColor: "#6200EE",
   },
 });

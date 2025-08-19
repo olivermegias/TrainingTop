@@ -5,6 +5,7 @@ const usuariosRoutes = require("./routes/usuarios.js");
 const rutinasRoutes = require("./routes/rutinas.js");
 const entrenamientosRoutes = require("./routes/entrenamientos.js");
 const progresoRoutes = require("./routes/progreso.js");
+const iaRoutes = require("./routes/ia.js"); // AÑADIR ESTA LÍNEA
 const cors = require("cors");
 const dotenv = require("dotenv");
 const { initializeAI } = require("./services/ollama.service");
@@ -14,10 +15,10 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5005;
 
-// Middleware para manejar CORS (si es necesario, puedes personalizarlo)
+// Middleware para manejar CORS
 app.use(
   cors({
-    origin: "*", // Permitir todas las conexiones o puedes definir un dominio específico
+    origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type"],
   })
@@ -34,8 +35,9 @@ app.use("/usuarios", usuariosRoutes);
 app.use("/rutinas", rutinasRoutes);
 app.use("/entrenamientos", entrenamientosRoutes);
 app.use("/progreso", progresoRoutes);
+app.use("/ia", iaRoutes); // AÑADIR ESTA LÍNEA
 
-//IA
+// Health check para IA
 app.get("/health", (req, res) => {
   res.json({
     status: "ok",
@@ -46,20 +48,13 @@ app.get("/health", (req, res) => {
 
 async function startServer() {
   try {
-    // Conectar a MongoDB
     await connectDB();
 
-    // Iniciar el servidor
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`🚀 Servidor corriendo en http://0.0.0.0:${PORT}`);
-    });
-
-    // Verificar que Ollama esté funcionando
-    await initializeAI();
-
-    app.listen(PORT, () => {
-      console.log(`🏃 Servidor Fitness AI ejecutándose en puerto ${PORT}`);
-      console.log(`📊 Modelo activo: ${process.env.OLLAMA_MODEL}`);
+      console.log(
+        `📊 Modelo activo: ${process.env.OLLAMA_MODEL || "No configurado"}`
+      );
       console.log(
         `💾 RAM disponible: ${(
           require("os").freemem() /
@@ -69,6 +64,14 @@ async function startServer() {
         ).toFixed(2)} GB`
       );
     });
+
+    try {
+      await initializeAI();
+      console.log("✅ Servicio de IA inicializado correctamente");
+    } catch (iaError) {
+      console.log("⚠️ Servicio de IA no disponible:", iaError.message);
+      console.log("   El servidor funcionará sin análisis de IA");
+    }
   } catch (error) {
     console.error("Error iniciando servidor:", error);
     process.exit(1);

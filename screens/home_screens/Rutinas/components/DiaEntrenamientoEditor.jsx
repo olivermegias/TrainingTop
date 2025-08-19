@@ -23,14 +23,14 @@ export default function DiaEntrenamientoEditor({
   const [selectedEjercicio, setSelectedEjercicio] = useState(null);
   const [editingEjercicioIndex, setEditingEjercicioIndex] = useState(null);
   const [ejerciciosAsignados, setEjerciciosAsignados] = useState(
-  () => (dia?.ejercicios || []).map(cfg => ({
-    ...cfg,
-    ejercicio:
-      typeof cfg.ejercicio === "object"
-        ? (cfg.ejercicio.id || cfg.ejercicio._id)
-        : cfg.ejercicio,
-  }))
-);
+    () => (dia?.ejercicios || []).map(cfg => ({
+      ...cfg,
+      ejercicio:
+        typeof cfg.ejercicio === "object"
+          ? (cfg.ejercicio.id || cfg.ejercicio._id)
+          : cfg.ejercicio,
+    }))
+  );
 
   // Filter states
   const [appliedFilters, setAppliedFilters] = useState({
@@ -38,12 +38,14 @@ export default function DiaEntrenamientoEditor({
     categoria: null,
     equipo: null,
     musculo: null,
+    fueza: null
   });
   const [tempFilters, setTempFilters] = useState({
     nivel: null,
     categoria: null,
     equipo: null,
     musculo: null,
+    fuerza: null
   });
 
   // Exercise config states
@@ -97,6 +99,7 @@ export default function DiaEntrenamientoEditor({
       categoria: null,
       equipo: null,
       musculo: null,
+      fuerza: null
     });
   };
 
@@ -113,6 +116,7 @@ export default function DiaEntrenamientoEditor({
       categoria: null,
       equipo: null,
       musculo: null,
+      fuerza: null
     });
   }, []);
 
@@ -374,6 +378,13 @@ export default function DiaEntrenamientoEditor({
                       </Text>
                     </View>
                   )}
+                  {tempFilters.fuerza && (
+                    <View style={styles.activeFilterBadge}>
+                      <Text style={styles.activeFilterText}>
+                        {tempFilters.fuerza}
+                      </Text>
+                    </View>
+                  )}
                   <TouchableOpacity onPress={clearTempFilters}>
                     <Text style={styles.clearFiltersText}>Limpiar</Text>
                   </TouchableOpacity>
@@ -483,6 +494,11 @@ export default function DiaEntrenamientoEditor({
               "glúteos",
               "trampas",
               "pecho",
+            ]}
+            fuerza={[
+              "tirar",
+              "empujar",
+              "estático",
             ]}
             toggleFilter={toggleFilter}
             hasActiveTempFilters={hasActiveTempFilters}
