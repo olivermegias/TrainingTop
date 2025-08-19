@@ -74,7 +74,7 @@ class OllamaService {
   }
 
   construirPromptAnalisis(datos) {
-    const { entrenamientoData, ejerciciosRealizados, duracionTotal, rutinaInfo, metricas } = datos;
+    const { entrenamientoData, duracionTotal, rutinaInfo, metricas } = datos;
     
     return `Eres un entrenador personal experto. Analiza este entrenamiento y proporciona recomendaciones específicas y detalladas.
 
@@ -86,7 +86,6 @@ DATOS DEL ENTRENAMIENTO:
 
 EJERCICIOS REALIZADOS:
 ${entrenamientoData.map((ejercicio, index) => {
-  const info = ejerciciosRealizados?.[index] || {};
   const v = ejercicio.valoracion || {};
   const seriesCompletadas = ejercicio.series?.filter(s => s.completada).length || 0;
   const pesoMax = Math.max(...(ejercicio.series?.map(s => s.peso || 0) || [0]));
@@ -95,7 +94,7 @@ ${entrenamientoData.map((ejercicio, index) => {
     : 0;
   
   return `
-${index + 1}. ${info.nombre || ejercicio.ejercicioId}
+${index + 1}. ${ejercicio.ejercicioId}
    - Satisfacción: ${v.satisfaccion || 0}/5
    - Esfuerzo: ${v.esfuerzo || 0}/5
    - Dificultad: ${v.dificultad || 0}/5

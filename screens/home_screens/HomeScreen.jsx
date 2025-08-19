@@ -10,11 +10,12 @@ import {
   RefreshControl,
   Platform,
   StatusBar,
+  Modal
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { Calendar } from "react-native-calendars";
+import { Calendar, LocaleConfig } from "react-native-calendars";
 import { AuthContext } from "../../context/AuthContext";
 import {
   fetchRutinaActiva,
@@ -24,6 +25,22 @@ import { fetchEntrenamientosUsuario } from "../../services/entrenamientoPeticion
 import { fetchRutinasPublicas } from "../../services/rutinasPeticiones";
 import { DetalleEntrenamientoModal } from '../../components/DetalleEntrenamientoModal';
 
+LocaleConfig.locales['es'] = {
+  monthNames: [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ],
+  monthNamesShort: [
+    'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+    'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
+  ],
+  dayNames: [
+    'Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'
+  ],
+  dayNamesShort: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
+  today: 'Hoy'
+};
+LocaleConfig.defaultLocale = 'es';
 
 export default function HomeScreen() {
   const navigation = useNavigation();
@@ -38,7 +55,8 @@ export default function HomeScreen() {
   const [rutinasPublicas, setRutinasPublicas] = useState([]);
   const [rutinaPublicaActual, setRutinaPublicaActual] = useState(0);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
-  const [visibleCount, setVisibleCount] = useState(4);
+  const [entrenamientosDelDia, setEntrenamientosDelDia] = useState([]);
+  const [modalSeleccionDia, setModalSeleccionDia] = useState(false);
 
   const [entrenamientoSeleccionado, setEntrenamientoSeleccionado] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -96,51 +114,12 @@ export default function HomeScreen() {
     }
   };
 
-  const handleDayPress = (day) => {
-    const entrenamientoDelDia = entrenamientosCalendario.find(
-      entrenamiento => {
-        const fechaEntrenamiento = new Date(entrenamiento.fechaInicio).toISOString().split('T')[0];
-        return fechaEntrenamiento === day.dateString;
-      }
-    );
-
-    if (entrenamientoDelDia) {
-      setEntrenamientoSeleccionado(entrenamientoDelDia);
-      setModalVisible(true);
-    }
-  };
-
-  const mostrarMas = () => {
-    setVisibleCount((prev) => prev + 4);
-  };
-
-  const mostrarMenos = () => {
-    setVisibleCount(4);
-  };
-
   const onRefresh = async () => {
     setRefreshing(true);
     await cargarDatos(false);
     setRefreshing(false);
   };
 
-  const formatearFecha = (fecha) => {
-    const date = new Date(fecha);
-    const hoy = new Date();
-    const ayer = new Date(hoy);
-    ayer.setDate(ayer.getDate() - 1);
-
-    if (date.toDateString() === hoy.toDateString()) {
-      return "Hoy";
-    } else if (date.toDateString() === ayer.toDateString()) {
-      return "Ayer";
-    } else {
-      return date.toLocaleDateString("es-ES", {
-        day: "numeric",
-        month: "short",
-      });
-    }
-  };
 
   const getSaludo = () => {
     const hora = new Date().getHours();
@@ -175,16 +154,21 @@ export default function HomeScreen() {
   };
 
   const onDayPress = (day) => {
-    const entrenamientoDelDia = entrenamientosCalendario.find(
+    const entrenamientosDelDia = entrenamientosCalendario.filter(
       entrenamiento => {
         const fechaEntrenamiento = new Date(entrenamiento.fechaInicio).toISOString().split('T')[0];
         return fechaEntrenamiento === day.dateString;
       }
     );
 
-    if (entrenamientoDelDia) {
-      setEntrenamientoSeleccionado(entrenamientoDelDia);
+    if (entrenamientosDelDia.length === 1) {
+      // Si solo hay uno, abrirlo directamente
+      setEntrenamientoSeleccionado(entrenamientosDelDia[0]);
       setModalVisible(true);
+    } else if (entrenamientosDelDia.length > 1) {
+      // Si hay varios, mostrar lista para elegir
+      setEntrenamientosDelDia(entrenamientosDelDia);
+      setModalSeleccionDia(true);
     }
   };
 
@@ -464,6 +448,7 @@ export default function HomeScreen() {
           </View>
           <View style={styles.calendarioCard}>
             <Calendar
+              locale={'es'}
               style={styles.calendario}
               theme={{
                 backgroundColor: 'transparent',
@@ -496,136 +481,6 @@ export default function HomeScreen() {
             />
           </View>
         </View>
-
-        {/* Historial mejorado */}
-        <View style={styles.historialContainer}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Actividad reciente</Text>
-          </View>
-
-          {entrenamientosRecientes.length === 0 ? (
-            <View style={styles.noEntrenamientos}>
-              <View style={styles.emptyStateIcon}>
-                <Ionicons name="barbell-outline" size={64} color="#E0E0E0" />
-              </View>
-              <Text style={styles.noEntrenamientosTitle}>
-                ¡Es hora de empezar!
-              </Text>
-              <Text style={styles.noEntrenamientosText}>
-                Tu primer entrenamiento te está esperando
-              </Text>
-              <TouchableOpacity
-                style={styles.empezarButton}
-                onPress={iniciarEntrenamientoRapido}
-              >
-                <LinearGradient
-                  colors={["#6200EE", "#5600D8"]}
-                  style={styles.empezarGradient}
-                >
-                  <Text style={styles.empezarButtonText}>Comenzar ahora</Text>
-                  <Ionicons name="arrow-forward" size={20} color="white" />
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <>
-              {entrenamientosRecientes
-                .slice(0, visibleCount)
-                .map((entrenamiento, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    onPress={() => {
-                      setEntrenamientoSeleccionado(entrenamiento);
-                      setModalVisible(true);
-                    }}
-                    style={[
-                      styles.entrenamientoCard,
-                      index === 0 && styles.entrenamientoCardFirst
-                    ]}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.entrenamientoLeft}>
-                      <View style={[
-                        styles.entrenamientoFecha,
-                        index === 0 && styles.entrenamientoFechaRecent
-                      ]}>
-                        <Text style={[
-                          styles.fechaDia,
-                          index === 0 && styles.fechaDiaRecent
-                        ]}>
-                          {formatearFecha(entrenamiento.fechaInicio)}
-                        </Text>
-                        <Text style={[
-                          styles.fechaHora,
-                          index === 0 && styles.fechaHoraRecent
-                        ]}>
-                          {new Date(entrenamiento.fechaInicio).toLocaleTimeString(
-                            "es-ES",
-                            {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            }
-                          )}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.entrenamientoCenter}>
-                      <Text style={styles.entrenamientoNombre}>
-                        {entrenamiento.nombreRutina}
-                      </Text>
-                      <Text style={styles.entrenamientoDia}>
-                        Día {entrenamiento.diaEntrenamiento + 1}
-                      </Text>
-                      <View style={styles.entrenamientoStats}>
-                        <View style={styles.statChip}>
-                          <Ionicons name="time-outline" size={12} color="#666" />
-                          <Text style={styles.statChipText}>
-                            {Math.round((entrenamiento.duracion || 0) / 60)} min
-                          </Text>
-                        </View>
-                        <View style={styles.statChip}>
-                          <Ionicons name="fitness-outline" size={12} color="#666" />
-                          <Text style={styles.statChipText}>
-                            {entrenamiento.ejercicios?.length || 0} ejercicios
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-
-                    <View style={styles.entrenamientoRight}>
-                      <Ionicons name="chevron-forward" size={20} color="#BDBDBD" />
-                    </View>
-                  </TouchableOpacity>
-                ))}
-
-              {entrenamientosRecientes.length > 4 && (
-                <View style={styles.verMasContainer}>
-                  {visibleCount < entrenamientosRecientes.length && (
-                    <TouchableOpacity
-                      style={styles.verMasButton}
-                      onPress={mostrarMas}
-                    >
-                      <Text style={styles.verMasText}>
-                        Ver más ({entrenamientosRecientes.length - visibleCount})
-                      </Text>
-                      <Ionicons name="chevron-down" size={16} color="#6200EE" />
-                    </TouchableOpacity>
-                  )}
-                  {visibleCount > 4 && (
-                    <TouchableOpacity
-                      style={styles.verMenosButton}
-                      onPress={mostrarMenos}
-                    >
-                      <Text style={styles.verMasText}>Ver menos</Text>
-                      <Ionicons name="chevron-up" size={16} color="#6200EE" />
-                    </TouchableOpacity>
-                  )}
-                </View>
-              )}
-            </>
-          )}
-        </View>
       </ScrollView>
       <DetalleEntrenamientoModal
         visible={modalVisible}
@@ -635,6 +490,65 @@ export default function HomeScreen() {
         }}
         entrenamiento={entrenamientoSeleccionado}
       />
+      {/* Modal para múltiples entrenamientos del mismo día */}
+      <Modal
+        visible={modalSeleccionDia}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setModalSeleccionDia(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSeleccionContent}>
+            <View style={styles.modalSeleccionHeader}>
+              <Text style={styles.modalSeleccionTitle}>
+                Entrenamientos del día
+              </Text>
+              <TouchableOpacity
+                onPress={() => setModalSeleccionDia(false)}
+                style={styles.closeButton}
+              >
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.entrenamientosList}>
+              {entrenamientosDelDia.map((entrenamiento, index) => (
+                <TouchableOpacity
+                  key={entrenamiento._id}
+                  style={styles.entrenamientoItem}
+                  onPress={() => {
+                    setEntrenamientoSeleccionado(entrenamiento);
+                    setModalSeleccionDia(false);
+                    setModalVisible(true);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.entrenamientoItemContent}>
+                    <View style={styles.entrenamientoIcon}>
+                      <Ionicons name="barbell" size={20} color="#6200EE" />
+                    </View>
+                    <View style={styles.entrenamientoDetails}>
+                      <Text style={styles.entrenamientoNombre}>
+                        {entrenamiento.rutina?.nombre || 'Entrenamiento personalizado'}
+                      </Text>
+                      <Text style={styles.entrenamientoHora}>
+                        {new Date(entrenamiento.fechaInicio).toLocaleTimeString('es-ES', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </Text>
+                      <Text style={styles.entrenamientoDuracion}>
+                        {Math.floor(entrenamiento.duracion / 60)} min
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color="#6200EE" />
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1011,169 +925,84 @@ const styles = StyleSheet.create({
     backgroundColor: "#6200EE",
     width: 18,
   },
-  historialContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  noEntrenamientos: {
-    backgroundColor: "white",
+  modalSeleccionContent: {
+    backgroundColor: 'white',
     borderRadius: 20,
-    padding: 40,
-    alignItems: "center",
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
+    width: '90%',
+    maxHeight: '70%',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
-  emptyStateIcon: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "#F5F5F5",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 20,
+  modalSeleccionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
-  noEntrenamientosTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#212121",
-    marginBottom: 8,
+  modalSeleccionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#212121',
   },
-  noEntrenamientosText: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 24,
-    textAlign: "center",
+  closeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  empezarButton: {
-    borderRadius: 12,
-    overflow: "hidden",
+  entrenamientosList: {
+    maxHeight: 400,
   },
-  empezarGradient: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    gap: 8,
+  entrenamientoItem: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+    borderRadius: 20,
   },
-  empezarButtonText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 16,
+  entrenamientoItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  entrenamientoCard: {
-    backgroundColor: "white",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
+  entrenamientoIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F3E5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  entrenamientoCardFirst: {
-    backgroundColor: "#F3E5F5",
-    borderWidth: 2,
-    borderColor: "#E1BEE7",
-  },
-  entrenamientoLeft: {
-    marginRight: 16,
-  },
-  entrenamientoFecha: {
-    alignItems: "center",
-    backgroundColor: "#F8F9FA",
-    borderRadius: 12,
-    padding: 12,
-    minWidth: 60,
-  },
-  entrenamientoFechaRecent: {
-    backgroundColor: "#6200EE",
-  },
-  fechaDia: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#6200EE",
-  },
-  fechaDiaRecent: {
-    color: "white",
-  },
-  fechaHora: {
-    fontSize: 11,
-    color: "#666",
-    marginTop: 2,
-  },
-  fechaHoraRecent: {
-    color: "rgba(255, 255, 255, 0.8)",
-  },
-  entrenamientoCenter: {
+  entrenamientoDetails: {
     flex: 1,
   },
   entrenamientoNombre: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#212121",
+    fontWeight: '600',
+    color: '#212121',
     marginBottom: 4,
   },
-  entrenamientoDia: {
-    fontSize: 13,
-    color: "#666",
-    marginBottom: 8,
-  },
-  entrenamientoStats: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  statChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F5F5F5",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
-  },
-  statChipText: {
-    fontSize: 11,
-    color: "#666",
-    fontWeight: "500",
-  },
-  entrenamientoRight: {
-    paddingLeft: 8,
-  },
-  verMasContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 16,
-    marginTop: 16,
-  },
-  verMasButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "white",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#6200EE",
-    gap: 6,
-  },
-  verMenosButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F3E5F5",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    gap: 6,
-  },
-  verMasText: {
+  entrenamientoHora: {
     fontSize: 14,
-    color: "#6200EE",
-    fontWeight: "600",
+    color: '#6200EE',
+    fontWeight: '500',
+  },
+  entrenamientoDuracion: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
   },
 });
