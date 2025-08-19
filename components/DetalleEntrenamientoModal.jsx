@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { fetchEjercicioPorId } from '../services/ejerciciosPeticiones';
 import { getEmojiSatisfaccion, getEmojiEsfuerzo } from '../services/entrenamientoPeticiones';
+import { RenderMarkdownText } from './RenderMarkDownText';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -297,9 +298,7 @@ export const DetalleEntrenamientoModal = ({ visible, onClose, entrenamiento }) =
                       </View>
 
                       <View style={styles.contenidoAnalisisIA}>
-                        <Text style={styles.textoAnalisisIA}>
-                          {entrenamiento.analisisIA.analisis}
-                        </Text>
+                        <RenderMarkdownText text={entrenamiento.analisisIA.analisis} />
 
                         {entrenamiento.analisisIA.metricas && (
                           <View style={styles.metricasIAContainer}>

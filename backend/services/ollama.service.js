@@ -94,7 +94,7 @@ ${entrenamientoData.map((ejercicio, index) => {
     : 0;
   
   return `
-${index + 1}. ${ejercicio.ejercicioId}
+${index + 1}. ${ejercicio.ejercicioNombre}
    - Satisfacción: ${v.satisfaccion || 0}/5
    - Esfuerzo: ${v.esfuerzo || 0}/5
    - Dificultad: ${v.dificultad || 0}/5

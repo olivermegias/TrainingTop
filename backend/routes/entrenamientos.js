@@ -53,6 +53,7 @@ router.post("/", async (req, res) => {
       diaEntrenamiento,
       ejercicios: ejercicios.map((ej) => ({
         ejercicioId: ej.ejercicioId,
+        ejercicioNombre: ej.ejercicioNombre || ej.nombre || "Sin nombre",
         series: ej.series || [],
         seriesSaltadas: ej.seriesSaltadas || 0,
         valoracion: ej.valoracion || null,

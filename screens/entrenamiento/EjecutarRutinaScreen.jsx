@@ -21,6 +21,7 @@ import { Toast } from "../../components/ToastComponent";
 import { fetchEjercicioPorId } from "../../services/ejerciciosPeticiones";
 import { guardarEntrenamiento } from "../../services/entrenamientoPeticiones";
 import { analizarEntrenamientoConIA } from "../../services/entrenamientoPeticiones";
+import { RenderMarkdownText } from "../../components/RenderMarkDownText";
 
 const { width } = Dimensions.get("window");
 
@@ -82,7 +83,7 @@ export default function EjecutarRutinaScreen() {
         datos[diaIndex] = {};
         dia.ejercicios.forEach((ejercicio, ejIndex) => {
           datos[diaIndex][ejIndex] = {
-            ejercicioId: ejercicio.ejercicio, // Cambiar de ejercicio.ejercicioId a ejercicio.ejercicio
+            ejercicioId: ejercicio.ejercicio,
             series: Array.from({ length: ejercicio.series }, () => ({
               peso: ejercicio.peso || 0,
               repeticiones: ejercicio.repeticiones || 0,
@@ -100,40 +101,29 @@ export default function EjecutarRutinaScreen() {
 
   useEffect(() => {
     const cargarEjercicio = async () => {
-      try {
-        // Añadir logs para debug
-        console.log("Día actual:", diaActual);
-        console.log("Ejercicio actual index:", ejercicioActual);
-        console.log("Día entrenamiento:", diaEntrenamiento);
-        console.log("Ejercicio actual data:", ejercicioActualData);
-        console.log(
-          "ID del ejercicio a cargar:",
-          ejercicioActualData?.ejercicio
-        );
-
-        if (ejercicioActualData?.ejercicio && diaEntrenamiento) {
-          const detalle = await fetchEjercicioPorId(
-            ejercicioActualData.ejercicio
-          );
+      if (ejercicioActualData?.ejercicio) {
+        try {
+          const detalle = await fetchEjercicioPorId(ejercicioActualData.ejercicio);
           setEjercicioDetalle(detalle);
-          setImagenActual(0);
 
-          if (entrenamientoIniciado && !tiempoInicioEjercicio) {
-            setTiempoInicioEjercicio(new Date());
-          }
-        }
-      } catch (error) {
-        console.error("Error al cargar el ejercicio:", error);
-        if (diaEntrenamiento && ejercicioActualData) {
-          mostrarToast("Error al cargar el ejercicio", "error");
+          // IMPORTANTE: Actualizar el nombre en entrenamientoData
+          setEntrenamientoData(prev => ({
+            ...prev,
+            [diaActual]: {
+              ...prev[diaActual],
+              [ejercicioActual]: {
+                ...prev[diaActual]?.[ejercicioActual],
+                nombre: detalle?.nombre || "Sin nombre" // 👈 Guardar el nombre aquí
+              }
+            }
+          }));
+        } catch (error) {
+          console.error("Error al cargar ejercicio:", error);
         }
       }
     };
-
-    if (diaEntrenamiento && ejercicioActualData) {
-      cargarEjercicio();
-    }
-  }, [ejercicioActualData?.ejercicio, entrenamientoIniciado, diaActual]);
+    cargarEjercicio();
+  }, [ejercicioActual, diaActual, ejercicioActualData?.ejercicio]);
 
   useEffect(() => {
     const cargarProgreso = async () => {
@@ -392,6 +382,7 @@ export default function EjecutarRutinaScreen() {
         ejercicios: Object.entries(entrenamientoData[diaActual] || {}).map(
           ([ejercicioIndex, data]) => ({
             ejercicioId: data.ejercicioId,
+            ejercicioNombre: data.nombre || "Sin nombre",
             series: data.series.filter(
               (serie) => serie.completada && !serie.saltada
             ),
@@ -1294,9 +1285,7 @@ export default function EjecutarRutinaScreen() {
                     <Text style={styles.analisisTitle}>
                       💡 Análisis Personalizado
                     </Text>
-                    <Text style={styles.analisisTexto}>
-                      {analisisIA.analisis}
-                    </Text>
+                    <RenderMarkdownText text={analisisIA.analisis} />
                   </View>
 
                   {/* Ejercicios recomendados */}
@@ -1330,7 +1319,7 @@ export default function EjecutarRutinaScreen() {
 
             <View style={styles.botonesAnalisis}>
               <TouchableOpacity
-                style={[styles.botonContinuarPrimario, cargandoAnalisis && {backgroundColor: 'gray'}]}
+                style={[styles.botonContinuarPrimario, cargandoAnalisis && { backgroundColor: 'gray' }]}
                 onPress={() => {
                   setMostrandoAnalisis(false);
                   navigation.goBack();

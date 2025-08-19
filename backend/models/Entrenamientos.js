@@ -16,6 +16,7 @@ const ValoracionSchema = new mongoose.Schema({
 
 const EjercicioEntrenamientoSchema = new mongoose.Schema({
   ejercicioId: { type: String, required: true },
+  ejercicioNombre: { type: String, required: true },
   series: [SerieSchema],
   seriesSaltadas: { type: Number, default: 0 },
   valoracion: { type: ValoracionSchema, default: null },
