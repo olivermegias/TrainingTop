@@ -2,9 +2,10 @@ const express = require("express");
 const router = express.Router();
 const { ollamaService } = require("../services/ollama.service");
 const Entrenamiento = require("../models/Entrenamientos");
+const Usuario = require("../models/Usuarios");
 
 // Función auxiliar para obtener historial
-async function getWorkoutHistory(userId, limit = 3) {
+async function getWorkoutHistory(userId, limit = 2) { // Reducido a 2 para optimizar contexto
   try {
     console.log("📚 Obteniendo historial del usuario...");
     const workouts = await Entrenamiento.find({ usuarioId: userId })
@@ -90,60 +91,57 @@ function calcularMetricasEntrenamiento(entrenamientoData) {
   };
 }
 
-// Función para generar prompt optimizado
-function generarPromptOptimizado(
+// Función mejorada para generar análisis de fallback
+function generarAnalisisFallback(
   entrenamientoData,
-  ejerciciosRealizados,
   metricas,
   duracionTotal,
-  rutinaInfo,
-  historial
 ) {
-  // Preparar datos de ejercicios de forma concisa
-  const ejerciciosResumen = entrenamientoData
-    .map((ej, idx) => {
-      const info = ejerciciosRealizados?.[idx] || {};
-      return `${info.nombre || ej.ejercicioId}: Satisf=${
-        ej.valoracion?.satisfaccion || 0
-      }/5, Esf=${ej.valoracion?.esfuerzo || 0}/5, Dific=${
-        ej.valoracion?.dificultad || 0
-      }/5, Tiempo=${ej.duracion}s, Series=${ej.series?.length || 0}/${
-        (ej.series?.length || 0) + (ej.seriesSaltadas || 0)
-      }`;
-    })
-    .join("\n");
+  const duracionMinutos = Math.round(duracionTotal / 60);
+  
+  return `## Resumen del Entrenamiento
 
-  return `Analiza este entrenamiento de gimnasio y da recomendaciones específicas:
+Has completado tu entrenamiento de **${duracionMinutos} minutos** con un **${metricas.porcentajeCompletado}% de series completadas**. 💪
 
-ENTRENAMIENTO:
-Rutina: ${rutinaInfo?.nombre} (Día ${(rutinaInfo?.diaIndex || 0) + 1})
-Duración: ${Math.round(duracionTotal / 60)} minutos
-Historial: ${historial.length} entrenamientos previos
+## Análisis por Ejercicio
 
-EJERCICIOS Y VALORACIONES:
-${ejerciciosResumen}
-
-MÉTRICAS GLOBALES:
-- Satisfacción promedio: ${metricas.promedioSatisfaccion}/5
-- Esfuerzo promedio: ${metricas.promedioEsfuerzo}/5
-- Dificultad promedio: ${metricas.promedioDificultad}/5
-- Series completadas: ${metricas.totalSeriesCompletadas}/${
-    metricas.totalSeriesCompletadas + metricas.totalSeriesSaltadas
+${entrenamientoData.map((ejercicio, idx) => {
+  const nombre = ejercicio.ejercicioNombre || `Ejercicio ${idx + 1}`;
+  const satisfaccion = ejercicio.valoracion?.satisfaccion || 0;
+  const dificultad = ejercicio.valoracion?.dificultad || 0;
+  const seriesSaltadas = ejercicio.seriesSaltadas || 0;
+  
+  let recomendacion = '';
+  if (satisfaccion < 3 && dificultad > 3) {
+    recomendacion = `Para **"${nombre}"**: La combinación de baja satisfacción y alta dificultad sugiere que el peso actual es excesivo. Reduce **5 kilos** en la próxima sesión y enfócate en la técnica.`;
+  } else if (seriesSaltadas > 0) {
+    recomendacion = `Para **"${nombre}"**: Saltaste ${seriesSaltadas} series. Reduce **3 kilos** para completar todas las series planificadas.`;
+  } else if (satisfaccion >= 4 && dificultad <= 2) {
+    recomendacion = `Para **"${nombre}"**: Excelente ejecución con baja dificultad. Aumenta **2.5 kilos** para mayor estímulo.`;
   }
+  
+  return recomendacion;
+}).filter(r => r).join('\n\n')}
 
-INSTRUCCIONES (MUY IMPORTANTE):
-1. Analiza CADA ejercicio individualmente
-2. Para ejercicios con baja satisfacción (<3) o alta dificultad (>4), da consejos específicos
-3. Si hay series saltadas, recomienda ajustes de peso
-4. Sugiere progresión solo si satisfacción>=3 y dificultad<=3
-5. Sé específico con números (ej: "reduce 5kg" o "añade 2 reps")
-6. Máximo 4 párrafos en español
-7. Usa emojis para hacer el texto más amigable
+## Ajustes de Carga y Descansos
 
-Da un análisis personalizado y motivador.`;
+* Mantén descansos de **60-90 segundos** entre series para optimizar la hipertrofia
+* Para ejercicios compuestos pesados, puedes descansar hasta **2 minutos**
+* Si la fatiga es excesiva, añade **30 segundos** más de descanso
+
+## Plan para Próxima Sesión
+
+* Ajusta los pesos según las recomendaciones específicas de cada ejercicio
+* Intenta completar todas las series planificadas
+* Registra tu percepción de esfuerzo para seguir ajustando las cargas
+* Mantén una técnica estricta en todos los movimientos
+
+## Mensaje Motivacional
+
+¡Sigue así! Cada entrenamiento te acerca más a tus objetivos. La constancia es la clave del éxito. 🎯💪`;
 }
 
-// Endpoint principal con Ollama
+// Endpoint principal con Ollama - VERSIÓN MEJORADA
 router.post("/analyze-workout", async (req, res) => {
   console.log("🎯 POST /ia/analyze-workout - INICIO");
 
@@ -169,41 +167,64 @@ router.post("/analyze-workout", async (req, res) => {
     // Obtener historial
     const historial = await getWorkoutHistory(usuarioId);
 
+    // NUEVO: Obtener datos del usuario para personalización
+    let usuarioData = null;
+    try {
+      usuarioData = await Usuario.findOne({ uid: usuarioId })
+        .select('peso altura objetivoPeso')
+        .lean();
+      console.log("👤 Datos del usuario obtenidos:", usuarioData ? "Sí" : "No");
+    } catch (error) {
+      console.error("⚠️ Error obteniendo datos del usuario:", error.message);
+    }
+
     let analisisTexto = "";
 
     try {
       // Intentar con Ollama
       console.log("🤖 Enviando a Ollama para análisis...");
 
-      const prompt = generarPromptOptimizado(
+      // MODIFICADO: Preparar datos completos para el análisis
+      const datosAnalisis = {
         entrenamientoData,
-        ejerciciosRealizados,
-        metricas,
         duracionTotal,
-        rutinaInfo,
-        historial
-      );
+        rutinaInfo: {
+          ...rutinaInfo,
+          totalDias: rutinaInfo?.dias?.length || 1
+        },
+        metricas,
+        usuarioData,
+        historial // Incluir el historial en los datos
+      };
 
-      console.log("📝 Longitud del prompt:", prompt.length, "caracteres");
+      console.log(datosAnalisis)
 
-      // Llamar a Ollama con timeout específico
+      // Llamar al servicio con los datos completos
       analisisTexto = await Promise.race([
-        ollamaService.generateResponse(prompt, {
-          temperature: 0.7,
-          maxTokens: 600,
-          model: process.env.OLLAMA_MODEL || "gemma:2b",
-        }),
+        ollamaService.analizarEntrenamiento(datosAnalisis),
         new Promise(
           (_, reject) =>
-            setTimeout(() => reject(new Error("Ollama timeout")), 120000) // 2 minutos timeout para Ollama
+            setTimeout(() => reject(new Error("Ollama timeout")), 180000) 
         ),
       ]);
 
       console.log("✅ Análisis de Ollama recibido");
+      
+      // Validar que el análisis tenga el formato correcto
+      if (!analisisTexto.includes("##")) {
+        console.log("⚠️ Análisis sin formato markdown correcto, usando fallback");
+        analisisTexto = generarAnalisisFallback(
+          entrenamientoData,
+          ejerciciosRealizados,
+          metricas,
+          duracionTotal,
+          rutinaInfo
+        );
+      }
     } catch (ollamaError) {
       console.error("⚠️ Error con Ollama:", ollamaError.message);
 
-      // Generar análisis de fallback detallado
+      // Generar análisis de fallback mejorado
       analisisTexto = generarAnalisisFallback(
         entrenamientoData,
         ejerciciosRealizados,
@@ -238,88 +259,36 @@ router.post("/analyze-workout", async (req, res) => {
   } catch (error) {
     console.error("❌ Error general en analyze-workout:", error);
 
-    // Respuesta de error pero exitosa para evitar Network Error
+    // Respuesta de error pero con análisis básico
+    const metricasBasicas = {
+      porcentajeCompletado: 100,
+      promedioSatisfaccion: "3",
+      promedioEsfuerzo: "3",
+      promedioDificultad: "3",
+      totalSeriesCompletadas: 0,
+      totalSeriesSaltadas: 0
+    };
+
     return res.status(200).json({
       success: true,
-      analisis:
-        "Tu entrenamiento ha sido guardado correctamente. El análisis detallado no pudo completarse en este momento, pero tu progreso está registrado.",
+      analisis: `## Entrenamiento Guardado
+
+Tu entrenamiento ha sido guardado correctamente. 💪
+
+## Resumen
+* Duración: ${Math.round((req.body?.duracionTotal || 0) / 60)} minutos
+* Ejercicios completados: ${req.body?.entrenamientoData?.length || 0}
+
+## Recomendación
+Continúa con tu plan de entrenamiento y mantén la constancia para ver resultados.
+
+¡Sigue así! 🎯`,
       ejerciciosRecomendados: [],
-      metricas: {
-        promedioSatisfaccion: "3",
-        promedioEsfuerzo: "3",
-        promedioDificultad: "3",
-        totalSeriesCompletadas: 0,
-        totalSeriesSaltadas: 0,
-        porcentajeCompletado: 100,
-      },
+      metricas: metricasBasicas,
       timestamp: new Date().toISOString(),
     });
   }
 });
-
-// Función para generar análisis de fallback detallado
-function generarAnalisisFallback(
-  entrenamientoData,
-  ejerciciosRealizados,
-  metricas,
-  duracionTotal,
-) {
-  let texto = `🎯 **Análisis de tu entrenamiento**\n\n`;
-  texto += `Completaste ${
-    metricas.totalSeriesCompletadas
-  } series en ${Math.round(duracionTotal / 60)} minutos. `;
-
-  const satisf = parseFloat(metricas.promedioSatisfaccion);
-  const esf = parseFloat(metricas.promedioEsfuerzo);
-  const dific = parseFloat(metricas.promedioDificultad);
-
-  // Análisis por métricas
-  if (satisf >= 4 && esf >= 4) {
-    texto += `¡Excelente sesión! Tu alta satisfacción (${metricas.promedioSatisfaccion}/5) y esfuerzo (${metricas.promedioEsfuerzo}/5) muestran un entrenamiento muy productivo. `;
-  } else if (satisf <= 2) {
-    texto += `La baja satisfacción (${metricas.promedioSatisfaccion}/5) sugiere que algo no fue óptimo. Considera ajustar los pesos o la selección de ejercicios. `;
-  } else {
-    texto += `Mantuviste un buen balance con satisfacción de ${metricas.promedioSatisfaccion}/5 y esfuerzo de ${metricas.promedioEsfuerzo}/5. `;
-  }
-
-  texto += `\n\n💪 **Recomendaciones:**\n`;
-
-  if (dific >= 4) {
-    texto += `• La alta dificultad (${metricas.promedioDificultad}/5) indica que estás en tu límite. Mantén estos pesos 2-3 semanas antes de incrementar.\n`;
-  } else if (dific <= 2) {
-    texto += `• Con dificultad de ${metricas.promedioDificultad}/5, puedes aumentar el peso en 2.5-5kg o añadir 1-2 repeticiones.\n`;
-  }
-
-  if (metricas.totalSeriesSaltadas > 0) {
-    texto += `• Saltaste ${metricas.totalSeriesSaltadas} series. Considera reducir el peso en 10% para completar todo el volumen.\n`;
-  }
-
-  // Análisis por ejercicio si hay datos
-  if (entrenamientoData && entrenamientoData.length > 0) {
-    texto += `\n📊 **Por ejercicio:**\n`;
-    entrenamientoData.forEach((ej, idx) => {
-      const nombre =
-        ejerciciosRealizados?.[idx]?.nombre || `Ejercicio ${idx + 1}`;
-      if (ej.valoracion) {
-        texto += `• ${nombre}: `;
-        if (ej.valoracion.satisfaccion <= 2) {
-          texto += `revisar técnica o peso. `;
-        } else if (ej.valoracion.dificultad >= 4) {
-          texto += `mantener peso actual. `;
-        } else if (ej.valoracion.dificultad <= 2) {
-          texto += `listo para progresar. `;
-        } else {
-          texto += `buen trabajo. `;
-        }
-        texto += `\n`;
-      }
-    });
-  }
-
-  texto += `\n¡Sigue así! La consistencia es la clave del progreso 💪`;
-
-  return texto;
-}
 
 // Test endpoint
 router.get("/test", (req, res) => {

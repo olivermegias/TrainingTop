@@ -1,70 +1,85 @@
-// Añadir esta función antes del componente o dentro de él
-
 import { Text, View, StyleSheet } from "react-native";
-
 
 // Componente para renderizar el texto parseado
 export const RenderMarkdownText = ({ text }) => {
   const parseMarkdownText = (text) => {
-  if (!text) return [];
+    if (!text) return [];
   
-  // Dividir por líneas
-  const lines = text.split('\n');
-  const elements = [];
+    // Dividir por líneas
+    const lines = text.split('\n');
+    const elements = [];
   
-  lines.forEach((line, index) => {
-    // Títulos con ##
-    if (line.startsWith('## ')) {
-      elements.push({
-        type: 'title',
-        content: line.replace(/^##\s*/, ''),
-        key: index
-      });
-    }
-    // Negritas con **texto**
-    else if (line.includes('**')) {
-      const parts = line.split(/\*\*(.*?)\*\*/g);
-      const lineElements = [];
-      
-      parts.forEach((part, i) => {
-        if (i % 2 === 0) {
-          // Texto normal
-          if (part.trim()) {
-            lineElements.push({ type: 'text', content: part });
+    lines.forEach((line, index) => {
+      // Títulos con ##
+      if (line.startsWith('## ')) {
+        elements.push({
+          type: 'title',
+          content: line.replace(/^##\s*/, ''),
+          key: index
+        });
+      }
+      // Viñeta con negrita (* **texto**)
+      else if (line.startsWith('* **')) {
+        const content = line.replace(/^\*\s*/, ''); // quitar "* "
+        const parts = content.split(/\*\*(.*?)\*\*/g); // detectar bold
+        const lineElements = [];
+        
+        parts.forEach((part, i) => {
+          if (i % 2 === 0) {
+            if (part.trim()) lineElements.push({ type: 'text', content: part });
+          } else {
+            lineElements.push({ type: 'bold', content: part });
           }
-        } else {
-          // Texto en negrita
-          lineElements.push({ type: 'bold', content: part });
-        }
-      });
-      
-      elements.push({
-        type: 'paragraph',
-        content: lineElements,
-        key: index
-      });
-    }
-    // Viñetas con * al inicio
-    else if (line.trim().startsWith('* ')) {
-      elements.push({
-        type: 'bullet',
-        content: line.replace(/^\s*\*\s*/, ''),
-        key: index
-      });
-    }
-    // Párrafos normales
-    else if (line.trim()) {
-      elements.push({
-        type: 'paragraph',
-        content: [{ type: 'text', content: line }],
-        key: index
-      });
-    }
-  });
+        });
+
+        elements.push({
+          type: 'bullet',
+          content: lineElements,
+          key: index
+        });
+      }
+      // Negritas en párrafos normales
+      else if (line.includes('**')) {
+        const parts = line.split(/\*\*(.*?)\*\*/g);
+        const lineElements = [];
+        
+        parts.forEach((part, i) => {
+          if (i % 2 === 0) {
+            if (part.trim()) lineElements.push({ type: 'text', content: part });
+          } else {
+            lineElements.push({ type: 'bold', content: part });
+          }
+        });
+        
+        elements.push({
+          type: 'paragraph',
+          content: lineElements,
+          key: index
+        });
+      }
+      // Viñetas con * al inicio
+      else if (line.trim().startsWith('* ')) {
+        elements.push({
+          type: 'bullet',
+          content: [{ type: 'text', content: line.replace(/^\s*\*\s*/, '') }],
+          key: index
+        });
+      }
+      // Párrafos normales
+      else if (line.trim()) {
+        elements.push({
+          type: 'paragraph',
+          content: [{ type: 'text', content: line }],
+          key: index
+        });
+      }
+    });
   
-  return elements;
-};
+    return elements;
+  };
+
   const elements = parseMarkdownText(text);
+
   return (
     <View>
       {elements.map((element) => {
@@ -79,15 +94,24 @@ export const RenderMarkdownText = ({ text }) => {
             return (
               <View key={element.key} style={styles.bulletContainer}>
                 <Text style={styles.bulletPoint}>• </Text>
-                <Text style={styles.bulletText}>{element.content}</Text>
+                <Text style={styles.bulletText}>
+                  {element.content.map((part, i) => (
+                    <Text
+                      key={i}
+                      style={part.type === 'bold' ? styles.boldText : null}
+                    >
+                      {part.content}
+                    </Text>
+                  ))}
+                </Text>
               </View>
             );
           case 'paragraph':
             return (
               <Text key={element.key} style={styles.markdownParagraph}>
                 {element.content.map((part, i) => (
-                  <Text 
-                    key={i} 
+                  <Text
+                    key={i}
                     style={part.type === 'bold' ? styles.boldText : null}
                   >
                     {part.content}
@@ -104,7 +128,7 @@ export const RenderMarkdownText = ({ text }) => {
 };
 
 const styles = StyleSheet.create({
-    markdownTitle: {
+  markdownTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
@@ -138,4 +162,4 @@ const styles = StyleSheet.create({
     color: '#444',
     flex: 1,
   },
-})
+});
