@@ -240,6 +240,7 @@ INSTRUCCIONES PARA TU ANÁLISIS:
    - No repitas ajustes ya dados en “Análisis por Ejercicio”
    - Enfócate en progresión global (ej: "mantén la constancia de tiempos", "incrementa 1 serie en todo el entrenamiento", "equilibra más trabajo de tirón/empuje")
    - Añade un consejo práctico de preparación o recuperación (ej: hidratación, sueño, movilidad antes de empezar)
+   - Añade un peso recomendado si lo ves oportuno.
 
    ## Mensaje Motivacional
    - Personalizado según el rendimiento y evolución
