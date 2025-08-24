@@ -16,6 +16,7 @@ import {
   fetchEjerciciosDetails,
   deleteRutina,
   asignarRutina,
+  analizarRutinaConIA
 } from "../../../services/rutinasPeticiones";
 import {
   fetchRutinaActiva,
@@ -32,7 +33,8 @@ import {
   getEmojiSatisfaccion,
   getTextoDificultad,
 } from "../../../services/entrenamientoPeticiones";
-import { DetalleEntrenamientoModal } from '../../../components/DetalleEntrenamientoModal';
+import { DetalleEntrenamientoModal } from "../../../components/DetalleEntrenamientoModal";
+import { RenderMarkdownText } from "../../../components/RenderMarkDownText";
 
 export default function DetalleRutinaScreen() {
   const route = useRoute();
@@ -49,8 +51,13 @@ export default function DetalleRutinaScreen() {
   const [historialEntrenamientos, setHistorialEntrenamientos] = useState([]);
   const [loadingHistorial, setLoadingHistorial] = useState(true);
   const [esRutinaActiva, setEsRutinaActiva] = useState(false);
-  const [entrenamientoSeleccionado, setEntrenamientoSeleccionado] = useState(null);
+  const [entrenamientoSeleccionado, setEntrenamientoSeleccionado] =
+    useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+
+  const [analisisIA, setAnalisisIA] = useState(null);
+  const [cargandoAnalisis, setCargandoAnalisis] = useState(false);
+  const [mostrarAnalisis, setMostrarAnalisis] = useState(false);
 
   useEffect(() => {
     const obtenerDatos = async () => {
@@ -60,6 +67,9 @@ export default function DetalleRutinaScreen() {
     };
     if (rutina) {
       obtenerDatos();
+      if (rutina?.ultimoAnalisisIA?.analisis) {
+        setAnalisisIA(rutina.ultimoAnalisisIA);
+      }
     } else {
       setLoading(false);
     }
@@ -279,6 +289,35 @@ export default function DetalleRutinaScreen() {
     }
   };
 
+  const handleAnalizarRutina = async () => {
+    setCargandoAnalisis(true);
+    setMostrarAnalisis(true);
+
+    try {
+      const resultado = await analizarRutinaConIA(rutina._id, rutina, user.uid);
+
+      if (resultado.success && resultado.data) {
+        setAnalisisIA(resultado.data);
+        // Actualizar la rutina localmente con el análisis
+        setRutina((prev) => ({
+          ...prev,
+          ultimoAnalisisIA: {
+            analisis: resultado.data.analisis,
+            fecha: new Date(),
+            metricas: resultado.data.metricas,
+          },
+        }));
+      } else {
+        setMostrarAnalisis(false);
+      }
+    } catch (error) {
+      console.error("Error al analizar rutina:", error);
+      setMostrarAnalisis(false);
+    } finally {
+      setCargandoAnalisis(false);
+    }
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -392,6 +431,79 @@ export default function DetalleRutinaScreen() {
           ))}
         </View>
 
+        {/* Botón de Análisis con IA */}
+        {!rutina.publica && cargandoAnalisis && (
+          <TouchableOpacity
+            style={styles.analizarButton}
+            onPress={handleAnalizarRutina}
+            disabled={cargandoAnalisis}
+          >
+            <ActivityIndicator size="small" color="#FFF" />
+          </TouchableOpacity>
+        )}
+
+        {/* Sección de Análisis IA */}
+        {(mostrarAnalisis || analisisIA) && !cargandoAnalisis && !rutina.publica ? (
+          <View style={styles.analisisContainer}>
+            <View style={styles.historialHeader}>
+              <Text style={styles.sectionTitle}>Análisis de la Rutina</Text>
+              {analisisIA?.fecha && (
+                <Text style={styles.analisisFecha}>
+                  {new Date(analisisIA.fecha).toLocaleDateString("es-ES")}
+                </Text>
+              )}
+            </View>
+
+            {analisisIA?.metricas && (
+              <View style={styles.metricasContainer}>
+                <View style={styles.metricaItem}>
+                  <Text style={styles.metricaValor}>
+                    {analisisIA.metricas.volumenTotal}
+                  </Text>
+                  <Text style={styles.metricaLabel}>Volumen Total</Text>
+                </View>
+                <View style={styles.metricaItem}>
+                  <Text style={styles.metricaValor}>
+                    {analisisIA.metricas.tiempoEstimado}min
+                  </Text>
+                  <Text style={styles.metricaLabel}>Tiempo/Sesión</Text>
+                </View>
+              </View>
+            )}
+
+            <View style={styles.analisisContent}>
+              <RenderMarkdownText
+                text={analisisIA?.analisis || "Analizando..."}
+              />
+            </View>
+
+            {analisisIA && (
+              <TouchableOpacity
+                style={styles.reanalizarButton}
+                onPress={handleAnalizarRutina}
+                disabled={cargandoAnalisis}
+              >
+                {cargandoAnalisis ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <Text style={styles.reanalizarText}>Volver a analizar</Text>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : (!cargandoAnalisis &&
+          <TouchableOpacity
+            style={styles.analizarButton}
+            onPress={handleAnalizarRutina}
+            disabled={cargandoAnalisis}
+          >
+            <Ionicons name="sparkles" size={20} color="#FFF" />
+            <Text style={styles.analizarButtonText}>
+              {"Analizar con IA"}
+            </Text>
+          </TouchableOpacity>
+        )}
+
         {/* Si la rutina es pública, mostramos el botón para asignarla */}
         {rutina.publica ? (
           <View style={styles.assignContainer}>
@@ -414,15 +526,9 @@ export default function DetalleRutinaScreen() {
               <View style={styles.historialHeader}>
                 <View style={styles.historialTitleRow}>
                   <Text style={styles.sectionTitle}>
-                    Historial de Entrenamientos
+                    Entrenamientos recientes
                   </Text>
-                  {historialEntrenamientos.length > 0 && (
-                    <View style={styles.historialBadge}>
-                      <Text style={styles.historialBadgeText}>
-                        {historialEntrenamientos.length}
-                      </Text>
-                    </View>
-                  )}
+
                 </View>
               </View>
 
@@ -440,10 +546,14 @@ export default function DetalleRutinaScreen() {
                       const promedios = calcularPromedios(entrenamiento);
 
                       return (
-                        <TouchableOpacity key={index} style={styles.entrenamientoItem} onPress={() => {
-                          setEntrenamientoSeleccionado(entrenamiento);
-                          setModalVisible(true);
-                        }}>
+                        <TouchableOpacity
+                          key={index}
+                          style={styles.entrenamientoItem}
+                          onPress={() => {
+                            setEntrenamientoSeleccionado(entrenamiento);
+                            setModalVisible(true);
+                          }}
+                        >
                           <View style={styles.entrenamientoInfo}>
                             <Text style={styles.entrenamientoDia}>
                               {rutina.dias[entrenamiento.diaEntrenamiento]
@@ -523,23 +633,6 @@ export default function DetalleRutinaScreen() {
                         </TouchableOpacity>
                       );
                     })
-                )}
-
-                {historialEntrenamientos.length > 5 && (
-                  <TouchableOpacity
-                    style={styles.verMasButton}
-                    onPress={() =>
-                      navigation.navigate("HistorialCompleto", {
-                        entrenamientos: historialEntrenamientos,
-                        rutina: rutina,
-                      })
-                    }
-                  >
-                    <Text style={styles.verMasText}>
-                      Ver historial completo
-                    </Text>
-                    <Ionicons name="arrow-forward" size={16} color="#6200EE" />
-                  </TouchableOpacity>
                 )}
               </View>
             </View>
@@ -879,5 +972,99 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     marginLeft: 8,
+  },
+  analizarButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#6200EE",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    marginBottom: 10,
+    borderRadius: 25,
+    alignSelf: "center",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  analizarButtonText: {
+    color: "#FFF",
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 8,
+  },
+  analisisContainer: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    overflow: "hidden",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    margin: 12
+  },
+  analisisHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  analisisTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  analisisFecha: {
+    fontSize: 12,
+    color: "#666",
+  },
+  analisisContent: {
+    backgroundColor: "#FFF",
+    borderRadius: 8,
+    paddingHorizontal: 20,
+  },
+  metricasContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    backgroundColor: "#FFF",
+    borderRadius: 8,
+    paddingTop: 12,
+  },
+  metricaItem: {
+    alignItems: "center",
+  },
+  metricaValor: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#6200EE",
+  },
+  metricaLabel: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 4,
+  },
+  cerrarAnalisisButton: {
+    alignSelf: "center",
+    marginTop: 10,
+    padding: 8,
+  },
+  cerrarAnalisisText: {
+    color: "#6200EE",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  reanalizarButton: {
+    alignSelf: "center",
+    marginVertical: 15,
+    backgroundColor: "#6200EE",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 25,
+  },
+  reanalizarText: {
+    color: "#FFF",
+    fontSize: 15,
+    fontWeight: "600",
   },
 });

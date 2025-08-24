@@ -261,6 +261,88 @@ INSTRUCCIONES PARA TU ANÁLISIS:
 
 IMPORTANTE: Sé específico con números cuando des recomendaciones de ajuste, pero sé más general y motivador cuando las cosas van bien. El objetivo es guiar sin sobrecargar de información. SÉ MUY ESTRICTO CON EL FORMATO Y EL IDIOMA.`;
   }
+
+  async analizarRutina(datosRutina) {
+    const prompt = this.construirPromptAnalisisRutina(datosRutina);
+    return this.generateResponse(prompt, {
+      temperature: 0.7,
+      maxTokens: 500, // Menos tokens para análisis más breve
+    });
+  }
+
+  construirPromptAnalisisRutina(datos) {
+    const { rutina, metricas, usuarioData } = datos;
+
+    const contextoUsuario = usuarioData
+      ? `
+DATOS DEL USUARIO:
+- Peso: ${usuarioData.peso || "No especificado"} kg
+- Altura: ${usuarioData.altura || "No especificada"} cm
+- Objetivo de peso: ${usuarioData.objetivoPeso || "No especificado"} kg
+- Experiencia: ${
+          usuarioData.entrenamientosCompletados || 0
+        } entrenamientos completados
+`
+      : "Sin datos del usuario disponibles.";
+
+    return `Eres un entrenador personal experto analizando una rutina de gimnasio.
+${contextoUsuario}
+
+RUTINA: "${rutina.nombre}"
+- Nivel: ${rutina.nivel}/5
+- Días de entrenamiento: ${rutina.dias.length}
+- Descripción: ${rutina.descripcion || "Sin descripción"}
+
+ESTRUCTURA DE LA RUTINA:
+${rutina.dias
+  .map((dia, index) => {
+    return `
+Día ${index + 1}: ${dia.nombre}
+Ejercicios: ${dia.ejercicios.length}
+${dia.ejercicios
+  .map(
+    (ej) =>
+      `  - "${ej.nombreEspanol}": ${ej.series}x${ej.repeticiones} (${ej.descanso}s descanso)`
+  )
+  .join("\n")}`;
+  })
+  .join("\n")}
+
+MÉTRICAS:
+- Volumen total semanal: ${metricas.volumenTotal} repeticiones
+- Tiempo estimado por sesión: ${Math.round(
+      metricas.tiempoEstimado / rutina.dias.length
+    )} minutos
+
+INSTRUCCIONES PARA TU ANÁLISIS BREVE:
+
+-  FORMATO: Usa markdown con "## " para títulos y "* " para listas.
+
+-  IDIOMA: Responde ÚNICAMENTE en español.
+
+-  ESTRUCTURA, COMO DEBE SER LA SALIDA(máximo 3 secciones cortas):
+
+   ## Evaluación General
+   - 2-3 líneas sobre la estructura y balance de la rutina
+   - Menciona si es apropiada para el nivel indicado
+
+   ## Puntos Fuertes y Áreas de Mejora
+   - 2-3 puntos fuertes de la rutina
+   - 1-2 sugerencias de mejora (sin recomendar ejercicios específicos)
+
+   ## Consejos de Progresión
+   - 2-3 consejos prácticos para sacar el máximo provecho
+   - Sugerencias sobre progresión de cargas o frecuencia
+
+-  IMPORTANTE:
+   - SÉ CONCISO: Máximo 10-12 líneas en total
+   - SIEMPRE usa los nombres en español de los ejercicios cuando los menciones
+   - NO recomiendes ejercicios específicos
+   - Usa un tono motivador y profesional
+   - Incluye 1-2 emojis relevantes para hacerlo amigable
+
+Responde ÚNICAMENTE en español con el análisis breve.`;
+  }
 }
 
 module.exports = {

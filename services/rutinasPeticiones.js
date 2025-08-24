@@ -32,6 +32,7 @@ export const fetchRutinasUsuario = async (usuarioId) => {
       loadingUsuario: false,
     };
   } catch (error) {
+    console.log("Error al obtener las rutinas del usuario", error);
     return {
       rutinasUsuario: [],
       loadingUsuario: false,
@@ -128,5 +129,47 @@ export const actualizarRutina = async (rutinaId, datosRutina) => {
     throw new Error(
       error.response?.data?.error || "Error al actualizar la rutina"
     );
+  }
+};
+
+// Analizar rutina con IA
+export const analizarRutinaConIA = async (rutinaId, rutina, usuarioId) => {
+  console.log("🚀 Enviando rutina para análisis IA");
+
+  try {
+    const response = await axios.post(
+      `${API_URL}/ia/analyze-routine`,
+      {
+        rutinaId,
+        rutina,
+        usuarioId,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        timeout: 60000, // 1 minuto de timeout
+      }
+    );
+
+    console.log("✅ Respuesta IA de rutina recibida:", response.data);
+
+    if (response.data && response.data.analisis) {
+      return {
+        success: true,
+        data: response.data,
+      };
+    } else {
+      return {
+        success: false,
+        error: "Respuesta incompleta del servidor",
+      };
+    }
+  } catch (error) {
+    console.error("❌ Error al analizar rutina:", error.message);
+    return {
+      success: false,
+      error: error.message,
+    };
   }
 };

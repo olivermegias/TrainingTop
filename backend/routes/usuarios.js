@@ -219,7 +219,9 @@ router.get("/", async (req, res) => {
     const usuario = await Usuario.find();
     res.json(usuario);
   } catch (error) {
-    res.status(500).json({ error: "Error al obtener usuario." + error.message });
+    res
+      .status(500)
+      .json({ error: "Error al obtener usuario." + error.message });
   }
 });
 
