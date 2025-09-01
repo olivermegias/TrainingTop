@@ -93,14 +93,10 @@ function calcularMetricasEntrenamiento(entrenamientoData) {
 }
 
 // Función mejorada para generar análisis de fallback
-function generarAnalisisFallback(entrenamientoData, metricas, duracionTotal) {
-  const duracionMinutos = Math.round(duracionTotal / 60);
+function generarAnalisisFallback(entrenamientoData) {
 
-  return `## Resumen del Entrenamiento
 
-Has completado tu entrenamiento de **${duracionMinutos} minutos** con un **${
-    metricas.porcentajeCompletado
-  }% de series completadas**. 💪
+  return `
 
 ## Análisis por Ejercicio
 

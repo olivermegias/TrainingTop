@@ -56,6 +56,8 @@ export default function PerfilScreen() {
   const [objetivoPeso, setObjetivoPeso] = useState("");
   const [objetivoModalVisible, setObjetivoModalVisible] = useState(false);
 
+  const [confirmLogoutVisible, setConfirmLogoutVisible] = useState(false);
+
   useFocusEffect(
     useCallback(() => {
       StatusBar.setBarStyle("light-content");
@@ -243,10 +245,12 @@ export default function PerfilScreen() {
   };
 
   const confirmLogout = () => {
-    Alert.alert("Cerrar Sesión", "¿Estás seguro de que deseas cerrar sesión?", [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Confirmar", onPress: cerrarSesion, style: "destructive" },
-    ]);
+    setConfirmLogoutVisible(true);
+  };
+
+  const handleLogout = () => {
+    setConfirmLogoutVisible(false);
+    cerrarSesion();
   };
 
   const formatearFecha = (fecha) => {
@@ -353,17 +357,17 @@ export default function PerfilScreen() {
   const chartData =
     historialPeso.length > 1
       ? {
-          labels: historialPeso
-            .slice(-6)
-            .map((item) => formatearFecha(item.fecha)),
-          datasets: [
-            {
-              data: historialPeso.slice(-6).map((item) => item.peso),
-              color: (opacity = 1) => `rgba(98, 0, 238, ${opacity})`,
-              strokeWidth: 2,
-            },
-          ],
-        }
+        labels: historialPeso
+          .slice(-6)
+          .map((item) => formatearFecha(item.fecha)),
+        datasets: [
+          {
+            data: historialPeso.slice(-6).map((item) => item.peso),
+            color: (opacity = 1) => `rgba(98, 0, 238, ${opacity})`,
+            strokeWidth: 2,
+          },
+        ],
+      }
       : null;
 
   return (
@@ -497,7 +501,7 @@ export default function PerfilScreen() {
                       {
                         color:
                           historialPeso[historialPeso.length - 1].peso <
-                          historialPeso[0].peso
+                            historialPeso[0].peso
                             ? "#27ae60"
                             : "#e74c3c",
                       },
@@ -540,8 +544,8 @@ export default function PerfilScreen() {
                   ? `¡Meta alcanzada! Objetivo: ${userData.objetivoPeso} kg`
                   : `Objetivo: ${userData.objetivoPeso} kg (Actual: ${userData.peso} kg)`
                 : userData?.peso && userData?.altura
-                ? `Peso ideal recomendado: ${calcularPesoIdeal()}`
-                : "Establece tu peso y objetivo"}
+                  ? `Peso ideal recomendado: ${calcularPesoIdeal()}`
+                  : "Establece tu peso y objetivo"}
             </Text>
 
             {userData?.peso && userData?.objetivoPeso && (
@@ -549,11 +553,11 @@ export default function PerfilScreen() {
                 {!haAlcanzadoObjetivo() &&
                   (userData.objetivoPeso > userData.peso
                     ? ` (${(userData.objetivoPeso - userData.peso).toFixed(
-                        1
-                      )} kg por ganar)`
+                      1
+                    )} kg por ganar)`
                     : ` (${(userData.peso - userData.objetivoPeso).toFixed(
-                        1
-                      )} kg por perder)`)}
+                      1
+                    )} kg por perder)`)}
               </Text>
             )}
           </View>
@@ -764,6 +768,42 @@ export default function PerfilScreen() {
                 <Text style={[styles.buttonText, { color: "white" }]}>
                   Establecer
                 </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      {/* Modal de confirmación de cerrar sesión */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={confirmLogoutVisible}
+        onRequestClose={() => setConfirmLogoutVisible(false)}
+      >
+        <View style={styles.confirmModalBackground}>
+          <View style={styles.confirmModalContainer}>
+            <View style={styles.confirmModalHeader}>
+              <Ionicons name="log-out-outline" size={32} color="#e74c3c" />
+              <Text style={styles.confirmModalTitle}>Cerrar Sesión</Text>
+            </View>
+
+            <Text style={styles.confirmModalMessage}>
+              ¿Estás seguro de que deseas cerrar sesión?
+            </Text>
+
+            <View style={styles.confirmModalButtons}>
+              <TouchableOpacity
+                style={[styles.confirmModalButton, styles.confirmCancelButton]}
+                onPress={() => setConfirmLogoutVisible(false)}
+              >
+                <Text style={styles.confirmCancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.confirmModalButton, styles.confirmLogoutButton]}
+                onPress={handleLogout}
+              >
+                <Text style={styles.confirmLogoutButtonText}>Cerrar Sesión</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1096,4 +1136,62 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
+  confirmModalBackground: {
+  flex: 1,
+  justifyContent: "center",
+  alignItems: "center",
+  backgroundColor: "rgba(0, 0, 0, 0.5)",
+},
+confirmModalContainer: {
+  backgroundColor: "white",
+  borderRadius: 16,
+  padding: 24,
+  width: "85%",
+  maxWidth: 400,
+  alignItems: "center",
+},
+confirmModalHeader: {
+  alignItems: "center",
+  marginBottom: 16,
+},
+confirmModalTitle: {
+  fontSize: 20,
+  fontWeight: "bold",
+  color: "#212121",
+  marginTop: 8,
+},
+confirmModalMessage: {
+  fontSize: 16,
+  color: "#666",
+  textAlign: "center",
+  marginBottom: 24,
+  lineHeight: 22,
+},
+confirmModalButtons: {
+  flexDirection: "row",
+  gap: 12,
+  width: "100%",
+},
+confirmModalButton: {
+  flex: 1,
+  paddingVertical: 12,
+  borderRadius: 8,
+  alignItems: "center",
+},
+confirmCancelButton: {
+  backgroundColor: "#F5F5F5",
+},
+confirmLogoutButton: {
+  backgroundColor: "#e74c3c",
+},
+confirmCancelButtonText: {
+  fontWeight: "600",
+  color: "#666",
+  fontSize: 16,
+},
+confirmLogoutButtonText: {
+  fontWeight: "600",
+  color: "white",
+  fontSize: 16,
+},
 });
